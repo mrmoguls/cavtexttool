@@ -1,0 +1,55 @@
+@import "tailwindcss";
+
+@theme {
+  --color-cream: #EAE5E0;
+  --color-cream-light: #F5F1ED;
+  --color-cream-dark: #D9D2CA;
+  --color-espresso: #3D2E26;
+  --color-espresso-light: #5C4A3E;
+  --color-amber: #C17F4A;
+  --color-amber-light: #D4985E;
+  --color-amber-muted: #F0E4D4;
+  --color-muted: #8C7B72;
+  --color-sage: #5A8A6A;
+  --color-sage-light: #EBF3EE;
+
+  --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background-color: #EAE5E0;
+  color: #3D2E26;
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overscroll-behavior: none;
+}
+
+#root {
+  width: 100%;
+  min-height: 100svh;
+}
+
+/* Smooth momentum scrolling on iOS */
+.scroll-area {
+  -webkit-overflow-scrolling: touch;
+  overflow-y: auto;
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Safe area insets for notch/home-bar phones */
+.safe-top { padding-top: env(safe-area-inset-top); }
+.safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
