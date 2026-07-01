@@ -100,11 +100,11 @@ export function DispatchHome({ onSignOut }: DispatchHomeProps) {
   ]
 
   return (
-    <div className="min-h-svh bg-[#EAE5E0] flex flex-col">
+    <div className="min-h-svh bg-[#EEF1F8] flex flex-col">
       <TopBar
         title="Dispatch"
         right={
-          <button onClick={handleSignOut} className="text-xs text-[#8C7B72] underline underline-offset-2">
+          <button onClick={handleSignOut} className="text-xs text-white/60 underline underline-offset-2">
             Sign out
           </button>
         }
@@ -133,35 +133,35 @@ export function DispatchHome({ onSignOut }: DispatchHomeProps) {
                         <div className="flex flex-wrap gap-1">
                           {ann.requires_ack && <Badge variant="amber">Ack required</Badge>}
                         </div>
-                        <ChevronRight size={16} className="text-[#8C7B72] flex-shrink-0 mt-0.5" />
+                        <ChevronRight size={16} className="text-[#6B7A99] flex-shrink-0 mt-0.5" />
                       </div>
 
                       <div>
-                        <h3 className="font-semibold text-[#3D2E26]">{ann.title}</h3>
-                        <p className="text-sm text-[#8C7B72] mt-0.5 line-clamp-2">{ann.body}</p>
+                        <h3 className="font-semibold text-[#0B1A5C]">{ann.title}</h3>
+                        <p className="text-sm text-[#6B7A99] mt-0.5 line-clamp-2">{ann.body}</p>
                       </div>
 
                       <div className="flex items-center gap-3 pt-1">
-                        <div className="flex items-center gap-1.5 text-xs text-[#8C7B72]">
-                          <CheckCircle size={12} className="text-[#5A8A6A]" />
+                        <div className="flex items-center gap-1.5 text-xs text-[#6B7A99]">
+                          <CheckCircle size={12} className="text-[#2E7D52]" />
                           {viewedCount}/{total} seen
                         </div>
                         {ann.requires_ack && (
-                          <div className="flex items-center gap-1.5 text-xs text-[#8C7B72]">
-                            <Clock size={12} className="text-[#C17F4A]" />
+                          <div className="flex items-center gap-1.5 text-xs text-[#6B7A99]">
+                            <Clock size={12} className="text-[#CC2A2A]" />
                             {ackedCount}/{total} acknowledged
                           </div>
                         )}
-                        <span className="text-xs text-[#8C7B72] ml-auto">
+                        <span className="text-xs text-[#6B7A99] ml-auto">
                           {formatRelative(ann.created_at)}
                         </span>
                       </div>
 
                       {/* Progress bar */}
                       {ann.requires_ack && (
-                        <div className="h-1.5 bg-[#EAE5E0] rounded-full overflow-hidden">
+                        <div className="h-1.5 bg-[#EEF1F8] rounded-full overflow-hidden">
                           <div
-                            className="h-full bg-[#5A8A6A] rounded-full transition-all duration-500"
+                            className="h-full bg-[#2E7D52] rounded-full transition-all duration-500"
                             style={{ width: total > 0 ? `${(ackedCount / total) * 100}%` : '0%' }}
                           />
                         </div>
@@ -187,23 +187,23 @@ export function DispatchHome({ onSignOut }: DispatchHomeProps) {
                   <Card key={driver.id} onClick={() => setSelectedDriver(driver)}>
                     <div className="flex items-center gap-3">
                       <div className="relative flex-shrink-0">
-                        <div className="w-10 h-10 rounded-full bg-[#F0E4D4] flex items-center justify-center text-[#C17F4A] font-semibold">
+                        <div className="w-10 h-10 rounded-full bg-[#FCE9E9] flex items-center justify-center text-[#CC2A2A] font-semibold">
                           {driver.name.charAt(0).toUpperCase()}
                         </div>
                         {hasUnread && (
-                          <span className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-[#C17F4A] rounded-full border-2 border-[#F5F1ED]" />
+                          <span className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-[#CC2A2A] rounded-full border-2 border-[#FFFFFF]" />
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between">
-                          <p className={`text-sm ${hasUnread ? 'font-semibold text-[#3D2E26]' : 'font-medium text-[#5C4A3E]'}`}>
+                          <p className={`text-sm ${hasUnread ? 'font-semibold text-[#0B1A5C]' : 'font-medium text-[#1B2E6B]'}`}>
                             {driver.name}
                           </p>
                           {latest && (
-                            <span className="text-[10px] text-[#8C7B72] flex-shrink-0">{formatRelative(latest.created_at)}</span>
+                            <span className="text-[10px] text-[#6B7A99] flex-shrink-0">{formatRelative(latest.created_at)}</span>
                           )}
                         </div>
-                        <p className="text-xs text-[#8C7B72] truncate mt-0.5">
+                        <p className="text-xs text-[#6B7A99] truncate mt-0.5">
                           {latest
                             ? `${latest.sender === 'driver' ? '' : 'You: '}${latest.body}`
                             : 'No messages yet'}
@@ -242,30 +242,30 @@ function AckDetail({
   const done = drivers.filter(d => ackedIds.has(d.id))
 
   return (
-    <div className="min-h-svh bg-[#EAE5E0] flex flex-col">
-      <div className="bg-[#F5F1ED] border-b border-[#D9D2CA] px-4 py-3 safe-top">
-        <button onClick={onBack} className="text-sm text-[#C17F4A] font-medium">← Back</button>
-        <h2 className="font-semibold text-[#3D2E26] mt-1">{announcement.title}</h2>
-        <p className="text-xs text-[#8C7B72]">{announcement.requires_ack ? 'Acknowledgment required' : 'View tracking'}</p>
+    <div className="min-h-svh bg-[#EEF1F8] flex flex-col">
+      <div className="bg-[#FFFFFF] border-b border-[#D8DFEF] px-4 py-3 safe-top">
+        <button onClick={onBack} className="text-sm text-[#CC2A2A] font-medium">← Back</button>
+        <h2 className="font-semibold text-[#0B1A5C] mt-1">{announcement.title}</h2>
+        <p className="text-xs text-[#6B7A99]">{announcement.requires_ack ? 'Acknowledgment required' : 'View tracking'}</p>
       </div>
 
       <div className="flex-1 overflow-y-auto scroll-area scrollbar-hide px-4 py-4 space-y-4">
         {/* Summary */}
         <div className="grid grid-cols-2 gap-3">
           <Card>
-            <p className="text-2xl font-bold text-[#5A8A6A]">{done.length}/{drivers.length}</p>
-            <p className="text-xs text-[#8C7B72] mt-0.5">{announcement.requires_ack ? 'Acknowledged' : 'Seen'}</p>
+            <p className="text-2xl font-bold text-[#2E7D52]">{done.length}/{drivers.length}</p>
+            <p className="text-xs text-[#6B7A99] mt-0.5">{announcement.requires_ack ? 'Acknowledged' : 'Seen'}</p>
           </Card>
           <Card>
-            <p className="text-2xl font-bold text-[#C17F4A]">{pending.length}</p>
-            <p className="text-xs text-[#8C7B72] mt-0.5">Outstanding</p>
+            <p className="text-2xl font-bold text-[#CC2A2A]">{pending.length}</p>
+            <p className="text-xs text-[#6B7A99] mt-0.5">Outstanding</p>
           </Card>
         </div>
 
         {/* Progress bar */}
-        <div className="h-2 bg-[#D9D2CA] rounded-full overflow-hidden">
+        <div className="h-2 bg-[#D8DFEF] rounded-full overflow-hidden">
           <div
-            className="h-full bg-[#5A8A6A] rounded-full transition-all duration-500"
+            className="h-full bg-[#2E7D52] rounded-full transition-all duration-500"
             style={{ width: drivers.length > 0 ? `${(done.length / drivers.length) * 100}%` : '0%' }}
           />
         </div>
@@ -273,21 +273,21 @@ function AckDetail({
         {/* Pending first */}
         {pending.length > 0 && (
           <div>
-            <p className="text-xs font-semibold text-[#C17F4A] uppercase tracking-wide mb-2">Outstanding ({pending.length})</p>
+            <p className="text-xs font-semibold text-[#CC2A2A] uppercase tracking-wide mb-2">Outstanding ({pending.length})</p>
             <div className="space-y-2">
               {pending.map(d => (
                 <Card key={d.id}>
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-[#F0E4D4] flex items-center justify-center text-[#C17F4A] font-semibold text-sm">
+                    <div className="w-8 h-8 rounded-full bg-[#FCE9E9] flex items-center justify-center text-[#CC2A2A] font-semibold text-sm">
                       {d.name.charAt(0)}
                     </div>
                     <div className="flex-1">
-                      <p className="text-sm font-medium text-[#3D2E26]">{d.name}</p>
-                      <p className="text-xs text-[#8C7B72]">
+                      <p className="text-sm font-medium text-[#0B1A5C]">{d.name}</p>
+                      <p className="text-xs text-[#6B7A99]">
                         {viewedIds.has(d.id) ? 'Viewed, not acknowledged' : 'Not yet opened'}
                       </p>
                     </div>
-                    <Clock size={14} className="text-[#C17F4A]" />
+                    <Clock size={14} className="text-[#CC2A2A]" />
                   </div>
                 </Card>
               ))}
@@ -297,23 +297,23 @@ function AckDetail({
 
         {done.length > 0 && (
           <div>
-            <p className="text-xs font-semibold text-[#5A8A6A] uppercase tracking-wide mb-2">Completed ({done.length})</p>
+            <p className="text-xs font-semibold text-[#2E7D52] uppercase tracking-wide mb-2">Completed ({done.length})</p>
             <div className="space-y-2">
               {done.map(d => {
                 const view = views.find(v => v.driver_id === d.id)
                 return (
                   <Card key={d.id}>
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-[#EBF3EE] flex items-center justify-center text-[#5A8A6A] font-semibold text-sm">
+                      <div className="w-8 h-8 rounded-full bg-[#E8F5EE] flex items-center justify-center text-[#2E7D52] font-semibold text-sm">
                         {d.name.charAt(0)}
                       </div>
                       <div className="flex-1">
-                        <p className="text-sm font-medium text-[#3D2E26]">{d.name}</p>
-                        <p className="text-xs text-[#8C7B72]">
+                        <p className="text-sm font-medium text-[#0B1A5C]">{d.name}</p>
+                        <p className="text-xs text-[#6B7A99]">
                           {view?.acknowledged_at ? `Acknowledged ${formatRelative(view.acknowledged_at)}` : ''}
                         </p>
                       </div>
-                      <CheckCircle size={16} className="text-[#5A8A6A]" />
+                      <CheckCircle size={16} className="text-[#2E7D52]" />
                     </div>
                   </Card>
                 )

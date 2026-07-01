@@ -14,8 +14,8 @@ export default defineConfig({
         name: 'Care-A-Van Connect',
         short_name: 'CAV Connect',
         description: 'Internal communication for Care-A-Van drivers',
-        theme_color: '#C17F4A',
-        background_color: '#EAE5E0',
+        theme_color: '#0B1A5C',
+        background_color: '#EEF1F8',
         display: 'standalone',
         orientation: 'portrait',
         icons: [

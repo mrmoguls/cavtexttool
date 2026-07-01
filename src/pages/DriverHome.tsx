@@ -94,11 +94,11 @@ export function DriverHome({ driver, onSignOut }: DriverHomeProps) {
   })
 
   return (
-    <div className="min-h-svh bg-[#EAE5E0] flex flex-col">
+    <div className="min-h-svh bg-[#EEF1F8] flex flex-col">
       <TopBar
         greeting={`Good to see you, ${driver.name.split(' ')[0]}`}
         right={
-          <button onClick={onSignOut} className="text-xs text-[#8C7B72] underline underline-offset-2">
+          <button onClick={onSignOut} className="text-xs text-white/60 underline underline-offset-2">
             Not you?
           </button>
         }
@@ -109,11 +109,11 @@ export function DriverHome({ driver, onSignOut }: DriverHomeProps) {
           <div className="flex-1 overflow-y-auto scroll-area scrollbar-hide px-4 py-4 space-y-3">
             {/* Push notification banner */}
             {!pushEnabled && isPushSupported() && isStandaloneMode() && (
-              <div className="bg-[#F0E4D4] border border-[#D4985E]/30 rounded-2xl p-4 flex items-start gap-3">
-                <Bell size={18} className="text-[#C17F4A] flex-shrink-0 mt-0.5" />
+              <div className="bg-[#FCE9E9] border border-[#E03A3A]/30 rounded-2xl p-4 flex items-start gap-3">
+                <Bell size={18} className="text-[#CC2A2A] flex-shrink-0 mt-0.5" />
                 <div className="flex-1">
-                  <p className="text-sm font-semibold text-[#3D2E26]">Enable notifications</p>
-                  <p className="text-xs text-[#8C7B72] mt-0.5">Get alerted for new messages even when the app is closed.</p>
+                  <p className="text-sm font-semibold text-[#0B1A5C]">Enable notifications</p>
+                  <p className="text-xs text-[#6B7A99] mt-0.5">Get alerted for new messages even when the app is closed.</p>
                   <Button size="sm" className="mt-2" onClick={enablePush}>Enable</Button>
                 </div>
               </div>
@@ -121,11 +121,11 @@ export function DriverHome({ driver, onSignOut }: DriverHomeProps) {
 
             {/* Pending acknowledgments summary */}
             {pendingAcks.length > 0 && (
-              <div className="bg-[#F0E4D4] border border-[#C17F4A]/20 rounded-2xl p-3 flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-[#C17F4A] flex items-center justify-center text-white text-sm font-bold">
+              <div className="bg-[#FCE9E9] border border-[#CC2A2A]/20 rounded-2xl p-3 flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-[#CC2A2A] flex items-center justify-center text-white text-sm font-bold">
                   {pendingAcks.length}
                 </div>
-                <p className="text-sm text-[#5C4A3E] font-medium">
+                <p className="text-sm text-[#1B2E6B] font-medium">
                   {pendingAcks.length === 1
                     ? '1 item needs your acknowledgment'
                     : `${pendingAcks.length} items need your acknowledgment`}
@@ -146,7 +146,7 @@ export function DriverHome({ driver, onSignOut }: DriverHomeProps) {
                 setTimeout(() => markViewed(ann), 100)
 
                 return (
-                  <Card key={ann.id} className={needsAck ? 'border-2 border-[#C17F4A]/40' : ''}>
+                  <Card key={ann.id} className={needsAck ? 'border-2 border-[#CC2A2A]/40' : ''}>
                     <div className="space-y-3">
                       {/* Header row */}
                       <div className="flex items-start justify-between gap-2">
@@ -155,14 +155,14 @@ export function DriverHome({ driver, onSignOut }: DriverHomeProps) {
                           {acked && <Badge variant="sage"><CheckCircle size={11} /> Acknowledged</Badge>}
                           {!ann.requires_ack && seen && <Badge variant="muted">Seen ✓</Badge>}
                         </div>
-                        <span className="text-[10px] text-[#8C7B72] whitespace-nowrap flex-shrink-0">
+                        <span className="text-[10px] text-[#6B7A99] whitespace-nowrap flex-shrink-0">
                           {formatRelative(ann.created_at)}
                         </span>
                       </div>
 
                       <div>
-                        <h3 className="font-semibold text-[#3D2E26] text-base leading-snug">{ann.title}</h3>
-                        <p className="text-sm text-[#5C4A3E] mt-1 leading-relaxed whitespace-pre-wrap">{ann.body}</p>
+                        <h3 className="font-semibold text-[#0B1A5C] text-base leading-snug">{ann.title}</h3>
+                        <p className="text-sm text-[#1B2E6B] mt-1 leading-relaxed whitespace-pre-wrap">{ann.body}</p>
                       </div>
 
                       {/* Image */}
@@ -180,14 +180,14 @@ export function DriverHome({ driver, onSignOut }: DriverHomeProps) {
                           href={ann.video_url}
                           target="_blank"
                           rel="noreferrer"
-                          className="flex items-center gap-3 bg-[#EAE5E0] rounded-xl p-3 group"
+                          className="flex items-center gap-3 bg-[#EEF1F8] rounded-xl p-3 group"
                         >
-                          <div className="w-10 h-10 rounded-full bg-[#C17F4A] flex items-center justify-center flex-shrink-0">
+                          <div className="w-10 h-10 rounded-full bg-[#CC2A2A] flex items-center justify-center flex-shrink-0">
                             <Play size={16} className="text-white ml-0.5" fill="white" />
                           </div>
                           <div>
-                            <p className="text-sm font-medium text-[#3D2E26]">Watch training video</p>
-                            <p className="text-xs text-[#8C7B72]">Opens in browser</p>
+                            <p className="text-sm font-medium text-[#0B1A5C]">Watch training video</p>
+                            <p className="text-xs text-[#6B7A99]">Opens in browser</p>
                           </div>
                         </a>
                       )}

@@ -47,8 +47,8 @@ export default function App() {
 
   if (mode === 'loading') {
     return (
-      <div className="min-h-svh bg-[#EAE5E0] flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-[#C17F4A]/30 border-t-[#C17F4A] rounded-full animate-spin" />
+      <div className="min-h-svh bg-[#EEF1F8] flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-[#CC2A2A]/30 border-t-[#CC2A2A] rounded-full animate-spin" />
       </div>
     )
   }

@@ -54,36 +54,36 @@ export function DispatchThread({ driver, onBack }: DispatchThreadProps) {
   }
 
   return (
-    <div className="min-h-svh bg-[#EAE5E0] flex flex-col">
-      <div className="bg-[#F5F1ED] border-b border-[#D9D2CA] px-4 py-3 safe-top">
+    <div className="min-h-svh bg-[#EEF1F8] flex flex-col">
+      <div className="bg-[#FFFFFF] border-b border-[#D8DFEF] px-4 py-3 safe-top">
         <div className="flex items-center gap-3">
-          <button onClick={onBack} className="text-sm text-[#C17F4A] font-medium">← Back</button>
+          <button onClick={onBack} className="text-sm text-[#CC2A2A] font-medium">← Back</button>
           <div className="flex items-center gap-2 flex-1">
-            <div className="w-8 h-8 rounded-full bg-[#F0E4D4] flex items-center justify-center text-[#C17F4A] font-semibold text-sm">
+            <div className="w-8 h-8 rounded-full bg-[#FCE9E9] flex items-center justify-center text-[#CC2A2A] font-semibold text-sm">
               {driver.name.charAt(0)}
             </div>
-            <p className="font-semibold text-[#3D2E26] text-sm">{driver.name}</p>
+            <p className="font-semibold text-[#0B1A5C] text-sm">{driver.name}</p>
           </div>
         </div>
       </div>
 
       <div className="flex-1 overflow-y-auto scroll-area scrollbar-hide px-4 py-4 space-y-2">
         {messages.length === 0 && (
-          <p className="text-center text-[#8C7B72] text-sm py-12">No messages with {driver.name.split(' ')[0]} yet.</p>
+          <p className="text-center text-[#6B7A99] text-sm py-12">No messages with {driver.name.split(' ')[0]} yet.</p>
         )}
         {messages.map(msg => (
           <div key={msg.id} className={`flex ${msg.sender === 'dispatch' ? 'justify-end' : 'justify-start'}`}>
             <div className={`
               max-w-[78%] rounded-2xl px-4 py-2.5
               ${msg.sender === 'dispatch'
-                ? 'bg-[#C17F4A] text-white rounded-br-md'
-                : 'bg-[#F5F1ED] text-[#3D2E26] rounded-bl-md shadow-sm'}
+                ? 'bg-[#CC2A2A] text-white rounded-br-md'
+                : 'bg-[#FFFFFF] text-[#0B1A5C] rounded-bl-md shadow-sm'}
             `}>
               {msg.sender === 'driver' && (
-                <p className="text-[10px] font-semibold text-[#8C7B72] mb-1">{driver.name.split(' ')[0]}</p>
+                <p className="text-[10px] font-semibold text-[#6B7A99] mb-1">{driver.name.split(' ')[0]}</p>
               )}
               <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.body}</p>
-              <p className={`text-[10px] mt-1 ${msg.sender === 'dispatch' ? 'text-white/60' : 'text-[#8C7B72]'}`}>
+              <p className={`text-[10px] mt-1 ${msg.sender === 'dispatch' ? 'text-white/60' : 'text-[#6B7A99]'}`}>
                 {new Date(msg.created_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
               </p>
             </div>
@@ -92,7 +92,7 @@ export function DispatchThread({ driver, onBack }: DispatchThreadProps) {
         <div ref={bottomRef} />
       </div>
 
-      <div className="px-4 py-3 bg-[#F5F1ED] border-t border-[#D9D2CA]">
+      <div className="px-4 py-3 bg-[#FFFFFF] border-t border-[#D8DFEF]">
         <div className="flex gap-2 items-end">
           <textarea
             value={body}
@@ -102,7 +102,7 @@ export function DispatchThread({ driver, onBack }: DispatchThreadProps) {
             }}
             placeholder={`Message ${driver.name.split(' ')[0]}…`}
             rows={1}
-            className="flex-1 bg-[#EAE5E0] rounded-xl px-4 py-2.5 text-sm text-[#3D2E26] resize-none outline-none border-2 border-transparent focus:border-[#C17F4A] transition-colors placeholder:text-[#8C7B72]"
+            className="flex-1 bg-[#EEF1F8] rounded-xl px-4 py-2.5 text-sm text-[#0B1A5C] resize-none outline-none border-2 border-transparent focus:border-[#CC2A2A] transition-colors placeholder:text-[#6B7A99]"
             style={{ maxHeight: 120, overflowY: 'auto' }}
           />
           <Button

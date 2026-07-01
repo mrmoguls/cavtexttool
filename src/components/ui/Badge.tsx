@@ -6,9 +6,9 @@ interface BadgeProps {
 }
 
 const variants = {
-  amber: 'bg-[#F0E4D4] text-[#C17F4A] border border-[#D4985E]/30',
-  sage: 'bg-[#EBF3EE] text-[#5A8A6A] border border-[#5A8A6A]/20',
-  muted: 'bg-[#EAE5E0] text-[#8C7B72] border border-[#D9D2CA]',
+  amber: 'bg-[#FCE9E9] text-[#CC2A2A] border border-[#E03A3A]/30',
+  sage: 'bg-[#E8F5EE] text-[#2E7D52] border border-[#2E7D52]/20',
+  muted: 'bg-[#EEF1F8] text-[#6B7A99] border border-[#D8DFEF]',
 }
 
 export function Badge({ children, variant = 'amber' }: BadgeProps) {

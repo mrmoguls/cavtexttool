@@ -40,14 +40,14 @@ export function DispatchRoster({ drivers, onUpdate }: DispatchRosterProps) {
     <div className="flex-1 overflow-y-auto scroll-area scrollbar-hide px-4 py-4 space-y-3">
       {/* Add driver */}
       <Card>
-        <p className="text-xs font-semibold text-[#8C7B72] uppercase tracking-wide mb-3">Add Driver</p>
+        <p className="text-xs font-semibold text-[#6B7A99] uppercase tracking-wide mb-3">Add Driver</p>
         <div className="flex gap-2">
           <input
             value={newName}
             onChange={e => setNewName(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && addDriver()}
             placeholder="Full name"
-            className="flex-1 bg-[#EAE5E0] rounded-xl px-4 py-2.5 text-sm text-[#3D2E26] outline-none border-2 border-transparent focus:border-[#C17F4A] placeholder:text-[#8C7B72] transition-colors"
+            className="flex-1 bg-[#EEF1F8] rounded-xl px-4 py-2.5 text-sm text-[#0B1A5C] outline-none border-2 border-transparent focus:border-[#CC2A2A] placeholder:text-[#6B7A99] transition-colors"
           />
           <Button size="sm" onClick={addDriver} disabled={adding || !newName.trim()}>
             <UserPlus size={16} />
@@ -63,14 +63,14 @@ export function DispatchRoster({ drivers, onUpdate }: DispatchRosterProps) {
           {drivers.map(driver => (
             <Card key={driver.id}>
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-full bg-[#F0E4D4] flex items-center justify-center text-[#C17F4A] font-semibold text-sm flex-shrink-0">
+                <div className="w-9 h-9 rounded-full bg-[#FCE9E9] flex items-center justify-center text-[#CC2A2A] font-semibold text-sm flex-shrink-0">
                   {driver.name.charAt(0).toUpperCase()}
                 </div>
-                <p className="flex-1 font-medium text-[#3D2E26]">{driver.name}</p>
+                <p className="flex-1 font-medium text-[#0B1A5C]">{driver.name}</p>
                 <button
                   onClick={() => removeDriver(driver.id)}
                   disabled={deletingId === driver.id}
-                  className="p-1.5 rounded-lg text-[#8C7B72] hover:text-red-500 hover:bg-red-50 transition-colors disabled:opacity-40"
+                  className="p-1.5 rounded-lg text-[#6B7A99] hover:text-red-500 hover:bg-red-50 transition-colors disabled:opacity-40"
                 >
                   <Trash2 size={15} />
                 </button>

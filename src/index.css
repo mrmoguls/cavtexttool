@@ -1,17 +1,19 @@
 @import "tailwindcss";
 
 @theme {
-  --color-cream: #EAE5E0;
-  --color-cream-light: #F5F1ED;
-  --color-cream-dark: #D9D2CA;
-  --color-espresso: #3D2E26;
-  --color-espresso-light: #5C4A3E;
-  --color-amber: #C17F4A;
-  --color-amber-light: #D4985E;
-  --color-amber-muted: #F0E4D4;
-  --color-muted: #8C7B72;
-  --color-sage: #5A8A6A;
-  --color-sage-light: #EBF3EE;
+  /* Care-A-Van brand: navy, red, white */
+  --color-navy: #0B1A5C;
+  --color-navy-mid: #1B2E6B;
+  --color-navy-light: #2E4AA0;
+  --color-navy-pale: #EEF1F8;
+  --color-border: #D8DFEF;
+  --color-red: #CC2A2A;
+  --color-red-light: #E03A3A;
+  --color-red-muted: #FCE9E9;
+  --color-muted: #6B7A99;
+  --color-sage: #2E7D52;
+  --color-sage-light: #E8F5EE;
+  --color-white: #FFFFFF;
 
   --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
@@ -23,8 +25,8 @@
 
 body {
   margin: 0;
-  background-color: #EAE5E0;
-  color: #3D2E26;
+  background-color: #EEF1F8;
+  color: #0B1A5C;
   font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -36,7 +38,6 @@ body {
   min-height: 100svh;
 }
 
-/* Smooth momentum scrolling on iOS */
 .scroll-area {
   -webkit-overflow-scrolling: touch;
   overflow-y: auto;
@@ -50,6 +51,5 @@ body {
   display: none;
 }
 
-/* Safe area insets for notch/home-bar phones */
 .safe-top { padding-top: env(safe-area-inset-top); }
 .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }

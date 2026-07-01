@@ -40,11 +40,11 @@ export function DispatchCompose({ onDone, onCancel }: DispatchComposeProps) {
   }
 
   return (
-    <div className="min-h-svh bg-[#EAE5E0] flex flex-col">
-      <div className="bg-[#F5F1ED] border-b border-[#D9D2CA] px-4 py-3 safe-top">
+    <div className="min-h-svh bg-[#EEF1F8] flex flex-col">
+      <div className="bg-[#FFFFFF] border-b border-[#D8DFEF] px-4 py-3 safe-top">
         <div className="flex items-center justify-between">
-          <button onClick={onCancel} className="text-sm text-[#8C7B72]">Cancel</button>
-          <h2 className="font-semibold text-[#3D2E26] text-sm">New Announcement</h2>
+          <button onClick={onCancel} className="text-sm text-[#6B7A99]">Cancel</button>
+          <h2 className="font-semibold text-[#0B1A5C] text-sm">New Announcement</h2>
           <Button size="sm" onClick={submit} disabled={submitting}>
             {submitting ? 'Posting…' : 'Post'}
           </Button>
@@ -63,22 +63,22 @@ export function DispatchCompose({ onDone, onCancel }: DispatchComposeProps) {
         <Card>
           <div className="space-y-3">
             <div>
-              <label className="text-xs font-semibold text-[#8C7B72] uppercase tracking-wide">Title</label>
+              <label className="text-xs font-semibold text-[#6B7A99] uppercase tracking-wide">Title</label>
               <input
                 value={title}
                 onChange={e => setTitle(e.target.value)}
                 placeholder="e.g. Schedule change this Friday"
-                className="mt-1 w-full bg-[#EAE5E0] rounded-xl px-4 py-2.5 text-sm text-[#3D2E26] outline-none border-2 border-transparent focus:border-[#C17F4A] placeholder:text-[#8C7B72] transition-colors"
+                className="mt-1 w-full bg-[#EEF1F8] rounded-xl px-4 py-2.5 text-sm text-[#0B1A5C] outline-none border-2 border-transparent focus:border-[#CC2A2A] placeholder:text-[#6B7A99] transition-colors"
               />
             </div>
             <div>
-              <label className="text-xs font-semibold text-[#8C7B72] uppercase tracking-wide">Message</label>
+              <label className="text-xs font-semibold text-[#6B7A99] uppercase tracking-wide">Message</label>
               <textarea
                 value={body}
                 onChange={e => setBody(e.target.value)}
                 placeholder="Write your announcement here…"
                 rows={5}
-                className="mt-1 w-full bg-[#EAE5E0] rounded-xl px-4 py-2.5 text-sm text-[#3D2E26] resize-none outline-none border-2 border-transparent focus:border-[#C17F4A] placeholder:text-[#8C7B72] transition-colors"
+                className="mt-1 w-full bg-[#EEF1F8] rounded-xl px-4 py-2.5 text-sm text-[#0B1A5C] resize-none outline-none border-2 border-transparent focus:border-[#CC2A2A] placeholder:text-[#6B7A99] transition-colors"
               />
             </div>
           </div>
@@ -86,19 +86,19 @@ export function DispatchCompose({ onDone, onCancel }: DispatchComposeProps) {
 
         {/* Optional media */}
         <Card>
-          <p className="text-xs font-semibold text-[#8C7B72] uppercase tracking-wide mb-3">Attachments (optional)</p>
+          <p className="text-xs font-semibold text-[#6B7A99] uppercase tracking-wide mb-3">Attachments (optional)</p>
           <div className="flex gap-2 mb-3">
             <button
               onClick={() => setShowImageField(v => !v)}
               className={`flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-lg border transition-colors
-                ${showImageField ? 'bg-[#F0E4D4] border-[#C17F4A] text-[#C17F4A]' : 'bg-[#EAE5E0] border-[#D9D2CA] text-[#8C7B72]'}`}
+                ${showImageField ? 'bg-[#FCE9E9] border-[#CC2A2A] text-[#CC2A2A]' : 'bg-[#EEF1F8] border-[#D8DFEF] text-[#6B7A99]'}`}
             >
               <Image size={14} /> Image URL
             </button>
             <button
               onClick={() => setShowVideoField(v => !v)}
               className={`flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-lg border transition-colors
-                ${showVideoField ? 'bg-[#F0E4D4] border-[#C17F4A] text-[#C17F4A]' : 'bg-[#EAE5E0] border-[#D9D2CA] text-[#8C7B72]'}`}
+                ${showVideoField ? 'bg-[#FCE9E9] border-[#CC2A2A] text-[#CC2A2A]' : 'bg-[#EEF1F8] border-[#D8DFEF] text-[#6B7A99]'}`}
             >
               <Link size={14} /> Video Link
             </button>
@@ -108,7 +108,7 @@ export function DispatchCompose({ onDone, onCancel }: DispatchComposeProps) {
               value={imageUrl}
               onChange={e => setImageUrl(e.target.value)}
               placeholder="https://… (image URL)"
-              className="w-full bg-[#EAE5E0] rounded-xl px-4 py-2.5 text-sm text-[#3D2E26] outline-none border-2 border-transparent focus:border-[#C17F4A] placeholder:text-[#8C7B72] transition-colors mb-2"
+              className="w-full bg-[#EEF1F8] rounded-xl px-4 py-2.5 text-sm text-[#0B1A5C] outline-none border-2 border-transparent focus:border-[#CC2A2A] placeholder:text-[#6B7A99] transition-colors mb-2"
             />
           )}
           {showVideoField && (
@@ -116,7 +116,7 @@ export function DispatchCompose({ onDone, onCancel }: DispatchComposeProps) {
               value={videoUrl}
               onChange={e => setVideoUrl(e.target.value)}
               placeholder="https://youtube.com/… or any video link"
-              className="w-full bg-[#EAE5E0] rounded-xl px-4 py-2.5 text-sm text-[#3D2E26] outline-none border-2 border-transparent focus:border-[#C17F4A] placeholder:text-[#8C7B72] transition-colors"
+              className="w-full bg-[#EEF1F8] rounded-xl px-4 py-2.5 text-sm text-[#0B1A5C] outline-none border-2 border-transparent focus:border-[#CC2A2A] placeholder:text-[#6B7A99] transition-colors"
             />
           )}
         </Card>
@@ -128,8 +128,8 @@ export function DispatchCompose({ onDone, onCancel }: DispatchComposeProps) {
             className="w-full flex items-center justify-between gap-3"
           >
             <div className="flex-1 text-left">
-              <p className="font-medium text-[#3D2E26] text-sm">Require acknowledgment</p>
-              <p className="text-xs text-[#8C7B72] mt-0.5">
+              <p className="font-medium text-[#0B1A5C] text-sm">Require acknowledgment</p>
+              <p className="text-xs text-[#6B7A99] mt-0.5">
                 {requiresAck
                   ? "Drivers must tap \"I acknowledge\" — you'll see who hasn't yet."
                   : 'Viewing counts as seen. No explicit confirmation needed.'}
@@ -137,7 +137,7 @@ export function DispatchCompose({ onDone, onCancel }: DispatchComposeProps) {
             </div>
             <div className={`
               w-11 h-6 rounded-full transition-colors duration-200 flex-shrink-0 relative
-              ${requiresAck ? 'bg-[#C17F4A]' : 'bg-[#D9D2CA]'}
+              ${requiresAck ? 'bg-[#CC2A2A]' : 'bg-[#D8DFEF]'}
             `}>
               <div className={`
                 absolute top-0.5 w-5 h-5 rounded-full bg-white shadow-sm transition-transform duration-200

@@ -1,35 +1,50 @@
-// Care-A-Van wordmark + van icon
-export function Logo({ size = 'md' }: { size?: 'sm' | 'md' | 'lg' }) {
-  const scale = size === 'sm' ? 28 : size === 'lg' ? 48 : 36
+// Care-A-Van shield mark + wordmark
+export function Logo({ size = 'md', onDark = false }: { size?: 'sm' | 'md' | 'lg'; onDark?: boolean }) {
+  const scale = size === 'sm' ? 28 : size === 'lg' ? 52 : 36
 
   return (
     <div className="flex items-center gap-2.5">
-      {/* Van icon */}
-      <svg width={scale} height={scale} viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <rect width="36" height="36" rx="10" fill="#C17F4A"/>
-        {/* Van body */}
-        <path d="M5 22V16C5 14.9 5.9 14 7 14H22L28 19V22H5Z" fill="white"/>
-        {/* Windshield */}
-        <path d="M20 14H24L27 18H20V14Z" fill="#EAE5E0" fillOpacity="0.6"/>
-        {/* Roof cross */}
-        <rect x="14" y="11" width="1.5" height="5" rx="0.75" fill="white"/>
-        <rect x="12" y="13" width="5.5" height="1.5" rx="0.75" fill="white"/>
-        {/* Wheels */}
-        <circle cx="10" cy="23" r="2.5" fill="#3D2E26"/>
-        <circle cx="10" cy="23" r="1" fill="#8C7B72"/>
-        <circle cx="23" cy="23" r="2.5" fill="#3D2E26"/>
-        <circle cx="23" cy="23" r="1" fill="#8C7B72"/>
+      {/* Shield icon */}
+      <svg width={scale} height={scale * 1.1} viewBox="0 0 40 44" fill="none" xmlns="http://www.w3.org/2000/svg">
+        {/* Shield body */}
+        <path d="M20 2L3 9V22C3 31.6 10.5 40.4 20 43C29.5 40.4 37 31.6 37 22V9L20 2Z" fill="#0B1A5C"/>
+        {/* Flag stripes (top half) */}
+        <clipPath id="shield-clip">
+          <path d="M20 2L3 9V22C3 31.6 10.5 40.4 20 43C29.5 40.4 37 31.6 37 22V9L20 2Z"/>
+        </clipPath>
+        <g clipPath="url(#shield-clip)">
+          {/* Red stripe bands */}
+          <rect x="2" y="2" width="36" height="5" fill="#CC2A2A"/>
+          <rect x="2" y="11" width="36" height="5" fill="#CC2A2A"/>
+          <rect x="2" y="20" width="36" height="5" fill="#CC2A2A"/>
+          {/* White bands */}
+          <rect x="2" y="7" width="36" height="4" fill="white"/>
+          <rect x="2" y="16" width="36" height="4" fill="white"/>
+          {/* Navy bottom */}
+          <rect x="2" y="25" width="36" height="20" fill="#0B1A5C"/>
+          {/* Stars */}
+          <text x="10" y="38" fontSize="6" fill="white" textAnchor="middle">★</text>
+          <text x="20" y="34" fontSize="6" fill="white" textAnchor="middle">★</text>
+          <text x="30" y="38" fontSize="6" fill="white" textAnchor="middle">★</text>
+          {/* Caduceus simplified */}
+          <line x1="20" y1="26" x2="20" y2="42" stroke="white" strokeWidth="1.2"/>
+          <ellipse cx="18" cy="29" rx="2" ry="1.5" stroke="white" strokeWidth="0.8" fill="none"/>
+          <ellipse cx="22" cy="32" rx="2" ry="1.5" stroke="white" strokeWidth="0.8" fill="none"/>
+        </g>
+        {/* Shield border */}
+        <path d="M20 2L3 9V22C3 31.6 10.5 40.4 20 43C29.5 40.4 37 31.6 37 22V9L20 2Z" stroke="#1B2E6B" strokeWidth="1.5" fill="none"/>
       </svg>
+
       <div className="flex flex-col leading-none">
         <span
-          className="font-semibold tracking-tight text-[#3D2E26]"
-          style={{ fontSize: scale * 0.42 }}
+          className={`font-bold tracking-tight ${onDark ? 'text-white' : 'text-[#0B1A5C]'}`}
+          style={{ fontSize: scale * 0.38 }}
         >
-          Care-A-Van
+          CARE·A·VAN
         </span>
         <span
-          className="text-[#8C7B72] font-normal tracking-widest uppercase"
-          style={{ fontSize: scale * 0.25 }}
+          className={`font-medium tracking-widest uppercase ${onDark ? 'text-red-400' : 'text-[#CC2A2A]'}`}
+          style={{ fontSize: scale * 0.22 }}
         >
           Connect
         </span>

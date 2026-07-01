@@ -15,7 +15,7 @@ interface TabBarProps {
 
 export function TabBar({ tabs, active, onChange }: TabBarProps) {
   return (
-    <div className="flex bg-[#F5F1ED] border-t border-[#D9D2CA] safe-bottom">
+    <div className="flex bg-[#FFFFFF] border-t border-[#D8DFEF] safe-bottom">
       {tabs.map(tab => (
         <button
           key={tab.key}
@@ -23,13 +23,13 @@ export function TabBar({ tabs, active, onChange }: TabBarProps) {
           className={`
             flex-1 flex flex-col items-center justify-center gap-1 py-3 px-2
             transition-colors duration-150
-            ${active === tab.key ? 'text-[#C17F4A]' : 'text-[#8C7B72]'}
+            ${active === tab.key ? 'text-[#CC2A2A]' : 'text-[#6B7A99]'}
           `}
         >
           <div className="relative">
             {tab.icon}
             {tab.badge ? (
-              <span className="absolute -top-1 -right-1.5 bg-[#C17F4A] text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+              <span className="absolute -top-1 -right-1.5 bg-[#CC2A2A] text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
                 {tab.badge > 9 ? '9+' : tab.badge}
               </span>
             ) : null}

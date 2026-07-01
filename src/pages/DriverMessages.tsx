@@ -58,8 +58,8 @@ export function DriverMessages({ driver, onMessagesRead }: DriverMessagesProps) 
 
   return (
     <div className="flex flex-col h-full">
-      <div className="px-4 py-2 bg-[#F5F1ED] border-b border-[#D9D2CA]">
-        <p className="text-xs text-[#8C7B72] text-center">Direct line to dispatch · Messages are private</p>
+      <div className="px-4 py-2 bg-[#FFFFFF] border-b border-[#D8DFEF]">
+        <p className="text-xs text-[#6B7A99] text-center">Direct line to dispatch · Messages are private</p>
       </div>
 
       <div className="flex-1 overflow-y-auto scroll-area scrollbar-hide px-4 py-4 space-y-2">
@@ -78,11 +78,11 @@ export function DriverMessages({ driver, onMessagesRead }: DriverMessagesProps) 
             <div className={`
               max-w-[78%] rounded-2xl px-4 py-2.5
               ${msg.sender === 'driver'
-                ? 'bg-[#C17F4A] text-white rounded-br-md'
-                : 'bg-[#F5F1ED] text-[#3D2E26] rounded-bl-md shadow-sm'}
+                ? 'bg-[#CC2A2A] text-white rounded-br-md'
+                : 'bg-[#FFFFFF] text-[#0B1A5C] rounded-bl-md shadow-sm'}
             `}>
               <p className="text-sm leading-relaxed whitespace-pre-wrap">{msg.body}</p>
-              <p className={`text-[10px] mt-1 ${msg.sender === 'driver' ? 'text-white/60' : 'text-[#8C7B72]'}`}>
+              <p className={`text-[10px] mt-1 ${msg.sender === 'driver' ? 'text-white/60' : 'text-[#6B7A99]'}`}>
                 {formatTime(msg.created_at)}
               </p>
             </div>
@@ -91,7 +91,7 @@ export function DriverMessages({ driver, onMessagesRead }: DriverMessagesProps) 
         <div ref={bottomRef} />
       </div>
 
-      <div className="px-4 py-3 bg-[#F5F1ED] border-t border-[#D9D2CA]">
+      <div className="px-4 py-3 bg-[#FFFFFF] border-t border-[#D8DFEF]">
         <div className="flex gap-2 items-end">
           <textarea
             value={body}
@@ -101,7 +101,7 @@ export function DriverMessages({ driver, onMessagesRead }: DriverMessagesProps) 
             }}
             placeholder="Message dispatch…"
             rows={1}
-            className="flex-1 bg-[#EAE5E0] rounded-xl px-4 py-2.5 text-sm text-[#3D2E26] resize-none outline-none border-2 border-transparent focus:border-[#C17F4A] transition-colors placeholder:text-[#8C7B72]"
+            className="flex-1 bg-[#EEF1F8] rounded-xl px-4 py-2.5 text-sm text-[#0B1A5C] resize-none outline-none border-2 border-transparent focus:border-[#CC2A2A] transition-colors placeholder:text-[#6B7A99]"
             style={{ maxHeight: 120, overflowY: 'auto' }}
           />
           <Button
