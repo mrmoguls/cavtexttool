@@ -1,8 +1,7 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
-import { supabase } from '../lib/supabase'
-import { useRealtimeTable } from '../hooks/useRealtime'
+import { useState, useEffect, useRef } from 'react'
+import { useData } from '../lib/data-context'
 import { Button } from '../components/ui/Button'
-import type { Driver, Message } from '../types'
+import type { Driver } from '../types'
 import { Send } from 'lucide-react'
 
 interface DispatchThreadProps {
@@ -11,45 +10,26 @@ interface DispatchThreadProps {
 }
 
 export function DispatchThread({ driver, onBack }: DispatchThreadProps) {
-  const [messages, setMessages] = useState<Message[]>([])
+  const data = useData()
+  const messages = data.getDriverMessages(driver.id)
   const [body, setBody] = useState('')
   const [sending, setSending] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
 
-  const load = useCallback(async () => {
-    const { data } = await supabase
-      .from('messages')
-      .select('*')
-      .eq('driver_id', driver.id)
-      .order('created_at', { ascending: true })
-    if (data) setMessages(data as Message[])
-
-    // Mark driver messages as read
-    await supabase
-      .from('messages')
-      .update({ read_at: new Date().toISOString() })
-      .eq('driver_id', driver.id)
-      .eq('sender', 'driver')
-      .is('read_at', null)
-  }, [driver.id])
-
-  useEffect(() => { load() }, [load])
-  useRealtimeTable('messages', load)
+  useEffect(() => {
+    data.markMessagesRead(driver.id, 'driver')
+  }, [driver.id, data, messages.length])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages])
+  }, [messages.length])
 
   async function send() {
     const text = body.trim()
     if (!text || sending) return
     setSending(true)
     setBody('')
-    await supabase.from('messages').insert({
-      driver_id: driver.id,
-      sender: 'dispatch',
-      body: text,
-    })
+    await data.sendMessage(driver.id, 'dispatch', text)
     setSending(false)
   }
 

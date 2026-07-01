@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'
-import { supabase } from '../lib/supabase'
+import { useState } from 'react'
+import { useData } from '../lib/data-context'
 import { storeIdentity, authDispatch } from '../lib/storage'
 import { isStandaloneMode } from '../lib/push'
 import { Button } from '../components/ui/Button'
@@ -20,17 +20,11 @@ export function Onboarding({ onComplete, onDispatchMode }: OnboardingProps) {
     if (isStandaloneMode()) return 'pick-name'
     return 'install-prompt'
   })
-  const [drivers, setDrivers] = useState<Driver[]>([])
+  const { drivers } = useData()
   const [loading, setLoading] = useState(false)
   const [pin, setPin] = useState('')
   const [pinError, setPinError] = useState(false)
   const [isIOS] = useState(() => /iphone|ipad|ipod/i.test(navigator.userAgent))
-
-  useEffect(() => {
-    supabase.from('drivers').select('*').order('name').then(({ data }) => {
-      if (data) setDrivers(data as Driver[])
-    })
-  }, [])
 
   async function selectDriver(driver: Driver) {
     setLoading(true)

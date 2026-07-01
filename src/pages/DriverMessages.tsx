@@ -1,58 +1,35 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
-import { supabase } from '../lib/supabase'
-import { useRealtimeTable } from '../hooks/useRealtime'
+import { useState, useEffect, useRef } from 'react'
+import { useData } from '../lib/data-context'
 import { Button } from '../components/ui/Button'
 import { EmptyState } from '../components/ui/EmptyState'
-import type { Driver, Message } from '../types'
+import type { Driver } from '../types'
 import { Send, MessageSquare } from 'lucide-react'
 
 interface DriverMessagesProps {
   driver: Driver
-  onMessagesRead: () => void
 }
 
-export function DriverMessages({ driver, onMessagesRead }: DriverMessagesProps) {
-  const [messages, setMessages] = useState<Message[]>([])
+export function DriverMessages({ driver }: DriverMessagesProps) {
+  const data = useData()
+  const messages = data.getDriverMessages(driver.id)
   const [body, setBody] = useState('')
   const [sending, setSending] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
 
-  const load = useCallback(async () => {
-    const { data } = await supabase
-      .from('messages')
-      .select('*')
-      .eq('driver_id', driver.id)
-      .order('created_at', { ascending: true })
-    if (data) setMessages(data as Message[])
-
-    // Mark dispatch messages as read
-    await supabase
-      .from('messages')
-      .update({ read_at: new Date().toISOString() })
-      .eq('driver_id', driver.id)
-      .eq('sender', 'dispatch')
-      .is('read_at', null)
-
-    onMessagesRead()
-  }, [driver.id, onMessagesRead])
-
-  useEffect(() => { load() }, [load])
-  useRealtimeTable('messages', load)
+  useEffect(() => {
+    data.markMessagesRead(driver.id, 'dispatch')
+  }, [driver.id, data, messages.length])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages])
+  }, [messages.length])
 
   async function send() {
     const text = body.trim()
     if (!text || sending) return
     setSending(true)
     setBody('')
-    await supabase.from('messages').insert({
-      driver_id: driver.id,
-      sender: 'driver',
-      body: text,
-    })
+    await data.sendMessage(driver.id, 'driver', text)
     setSending(false)
   }
 
@@ -71,10 +48,7 @@ export function DriverMessages({ driver, onMessagesRead }: DriverMessagesProps) 
           />
         )}
         {messages.map(msg => (
-          <div
-            key={msg.id}
-            className={`flex ${msg.sender === 'driver' ? 'justify-end' : 'justify-start'}`}
-          >
+          <div key={msg.id} className={`flex ${msg.sender === 'driver' ? 'justify-end' : 'justify-start'}`}>
             <div className={`
               max-w-[78%] rounded-2xl px-4 py-2.5
               ${msg.sender === 'driver'

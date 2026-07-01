@@ -1,7 +1,6 @@
-import { useState, useEffect, useCallback } from 'react'
-import { supabase } from '../lib/supabase'
+import { useState } from 'react'
+import { useData } from '../lib/data-context'
 import { subscribeToPush, isPushSupported, isStandaloneMode } from '../lib/push'
-import { useRealtimeTable } from '../hooks/useRealtime'
 import { Card } from '../components/ui/Card'
 import { Badge } from '../components/ui/Badge'
 import { Button } from '../components/ui/Button'
@@ -9,7 +8,7 @@ import { TopBar } from '../components/ui/TopBar'
 import { TabBar } from '../components/ui/TabBar'
 import { EmptyState } from '../components/ui/EmptyState'
 import { DriverMessages } from './DriverMessages'
-import type { Driver, Announcement, AnnouncementView } from '../types'
+import type { Driver } from '../types'
 import { Bell, MessageSquare, Megaphone, CheckCircle, Play } from 'lucide-react'
 
 interface DriverHomeProps {
@@ -19,60 +18,20 @@ interface DriverHomeProps {
 
 export function DriverHome({ driver, onSignOut }: DriverHomeProps) {
   const [tab, setTab] = useState<'feed' | 'messages'>('feed')
-  const [announcements, setAnnouncements] = useState<Announcement[]>([])
-  const [views, setViews] = useState<AnnouncementView[]>([])
-  const [unreadMessages, setUnreadMessages] = useState(0)
   const [pushEnabled, setPushEnabled] = useState(false)
   const [acknowledging, setAcknowledging] = useState<string | null>(null)
 
-  const load = useCallback(async () => {
-    const [annRes, viewRes, msgRes] = await Promise.all([
-      supabase.from('announcements').select('*').order('created_at', { ascending: false }),
-      supabase.from('announcement_views').select('*').eq('driver_id', driver.id),
-      supabase.from('messages')
-        .select('*')
-        .eq('driver_id', driver.id)
-        .eq('sender', 'dispatch')
-        .is('read_at', null),
-    ])
-    if (annRes.data) setAnnouncements(annRes.data as Announcement[])
-    if (viewRes.data) setViews(viewRes.data as AnnouncementView[])
-    if (msgRes.data) setUnreadMessages(msgRes.data.length)
-  }, [driver.id])
+  const data = useData()
+  const { announcements, views } = data
+  const driverViews = views.filter(v => v.driver_id === driver.id)
+  const unreadMessages = data.getUnreadForDriver(driver.id)
 
-  useEffect(() => { load() }, [load])
-  useRealtimeTable('announcements', load)
-  useRealtimeTable('announcement_views', load)
-  useRealtimeTable('messages', load)
+  const getView = (id: string) => driverViews.find(v => v.announcement_id === id)
 
-  // Mark viewed when announcement is first seen
-  async function markViewed(announcement: Announcement) {
-    const alreadySeen = views.find(v => v.announcement_id === announcement.id)
-    if (alreadySeen) return
-    await supabase.from('announcement_views').insert({
-      announcement_id: announcement.id,
-      driver_id: driver.id,
-    })
-    load()
-  }
-
-  async function acknowledge(announcement: Announcement) {
-    setAcknowledging(announcement.id)
-    const existing = views.find(v => v.announcement_id === announcement.id)
-    if (existing) {
-      await supabase
-        .from('announcement_views')
-        .update({ acknowledged_at: new Date().toISOString() })
-        .eq('id', existing.id)
-    } else {
-      await supabase.from('announcement_views').insert({
-        announcement_id: announcement.id,
-        driver_id: driver.id,
-        acknowledged_at: new Date().toISOString(),
-      })
-    }
+  async function handleAcknowledge(annId: string) {
+    setAcknowledging(annId)
+    await data.acknowledge(annId, driver.id)
     setAcknowledging(null)
-    load()
   }
 
   async function enablePush() {
@@ -80,18 +39,16 @@ export function DriverHome({ driver, onSignOut }: DriverHomeProps) {
     setPushEnabled(ok)
   }
 
-  const getView = (id: string) => views.find(v => v.announcement_id === id)
-
-  const tabs = [
-    { key: 'feed', label: 'Announcements', icon: <Megaphone size={20} /> },
-    { key: 'messages', label: 'Messages', icon: <MessageSquare size={20} />, badge: unreadMessages },
-  ]
-
   const pendingAcks = announcements.filter(a => {
     if (!a.requires_ack) return false
     const v = getView(a.id)
     return !v?.acknowledged_at
   })
+
+  const tabs = [
+    { key: 'feed', label: 'Announcements', icon: <Megaphone size={20} /> },
+    { key: 'messages', label: 'Messages', icon: <MessageSquare size={20} />, badge: unreadMessages },
+  ]
 
   return (
     <div className="min-h-svh bg-[#EEF1F8] flex flex-col">
@@ -107,7 +64,6 @@ export function DriverHome({ driver, onSignOut }: DriverHomeProps) {
       <div className="flex-1 overflow-hidden flex flex-col">
         {tab === 'feed' ? (
           <div className="flex-1 overflow-y-auto scroll-area scrollbar-hide px-4 py-4 space-y-3">
-            {/* Push notification banner */}
             {!pushEnabled && isPushSupported() && isStandaloneMode() && (
               <div className="bg-[#FCE9E9] border border-[#E03A3A]/30 rounded-2xl p-4 flex items-start gap-3">
                 <Bell size={18} className="text-[#CC2A2A] flex-shrink-0 mt-0.5" />
@@ -119,7 +75,6 @@ export function DriverHome({ driver, onSignOut }: DriverHomeProps) {
               </div>
             )}
 
-            {/* Pending acknowledgments summary */}
             {pendingAcks.length > 0 && (
               <div className="bg-[#FCE9E9] border border-[#CC2A2A]/20 rounded-2xl p-3 flex items-center gap-3">
                 <div className="w-8 h-8 rounded-full bg-[#CC2A2A] flex items-center justify-center text-white text-sm font-bold">
@@ -142,13 +97,12 @@ export function DriverHome({ driver, onSignOut }: DriverHomeProps) {
                 const acked = !!view?.acknowledged_at
                 const needsAck = ann.requires_ack && !acked
 
-                // Mark as viewed when rendered (next tick to avoid blocking render)
-                setTimeout(() => markViewed(ann), 100)
+                // Mark as viewed
+                if (!seen) setTimeout(() => data.markViewed(ann.id, driver.id), 100)
 
                 return (
                   <Card key={ann.id} className={needsAck ? 'border-2 border-[#CC2A2A]/40' : ''}>
                     <div className="space-y-3">
-                      {/* Header row */}
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex flex-wrap items-center gap-1.5">
                           {needsAck && <Badge variant="amber">⚠ Acknowledge required</Badge>}
@@ -165,23 +119,13 @@ export function DriverHome({ driver, onSignOut }: DriverHomeProps) {
                         <p className="text-sm text-[#1B2E6B] mt-1 leading-relaxed whitespace-pre-wrap">{ann.body}</p>
                       </div>
 
-                      {/* Image */}
                       {ann.image_url && (
-                        <img
-                          src={ann.image_url}
-                          alt=""
-                          className="w-full rounded-xl object-cover max-h-48"
-                        />
+                        <img src={ann.image_url} alt="" className="w-full rounded-xl object-cover max-h-48" />
                       )}
 
-                      {/* Video */}
                       {ann.video_url && (
-                        <a
-                          href={ann.video_url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="flex items-center gap-3 bg-[#EEF1F8] rounded-xl p-3 group"
-                        >
+                        <a href={ann.video_url} target="_blank" rel="noreferrer"
+                          className="flex items-center gap-3 bg-[#EEF1F8] rounded-xl p-3 group">
                           <div className="w-10 h-10 rounded-full bg-[#CC2A2A] flex items-center justify-center flex-shrink-0">
                             <Play size={16} className="text-white ml-0.5" fill="white" />
                           </div>
@@ -192,14 +136,9 @@ export function DriverHome({ driver, onSignOut }: DriverHomeProps) {
                         </a>
                       )}
 
-                      {/* Acknowledge button */}
                       {needsAck && (
-                        <Button
-                          fullWidth
-                          size="lg"
-                          onClick={() => acknowledge(ann)}
-                          disabled={acknowledging === ann.id}
-                        >
+                        <Button fullWidth size="lg" onClick={() => handleAcknowledge(ann.id)}
+                          disabled={acknowledging === ann.id}>
                           {acknowledging === ann.id ? 'Confirming…' : ann.video_url ? "I've Watched This" : 'I Acknowledge This'}
                         </Button>
                       )}
@@ -210,7 +149,7 @@ export function DriverHome({ driver, onSignOut }: DriverHomeProps) {
             )}
           </div>
         ) : (
-          <DriverMessages driver={driver} onMessagesRead={() => setUnreadMessages(0)} />
+          <DriverMessages driver={driver} />
         )}
       </div>
 

@@ -1,17 +1,16 @@
 import { useState } from 'react'
-import { supabase } from '../lib/supabase'
+import { useData } from '../lib/data-context'
 import { Button } from '../components/ui/Button'
 import { Card } from '../components/ui/Card'
-import type { Driver } from '../types'
 import { Image, Link, AlertCircle, X } from 'lucide-react'
 
 interface DispatchComposeProps {
-  drivers: Driver[]
   onDone: () => void
   onCancel: () => void
 }
 
 export function DispatchCompose({ onDone, onCancel }: DispatchComposeProps) {
+  const data = useData()
   const [title, setTitle] = useState('')
   const [body, setBody] = useState('')
   const [imageUrl, setImageUrl] = useState('')
@@ -26,16 +25,14 @@ export function DispatchCompose({ onDone, onCancel }: DispatchComposeProps) {
     if (!title.trim()) { setError('Please add a title.'); return }
     if (!body.trim()) { setError('Please add a message.'); return }
     setSubmitting(true)
-    const { error: err } = await supabase.from('announcements').insert({
+    await data.addAnnouncement({
       title: title.trim(),
       body: body.trim(),
       image_url: imageUrl.trim() || null,
       video_url: videoUrl.trim() || null,
       requires_ack: requiresAck,
-      created_by: 'dispatch',
     })
     setSubmitting(false)
-    if (err) { setError(err.message); return }
     onDone()
   }
 
@@ -84,7 +81,6 @@ export function DispatchCompose({ onDone, onCancel }: DispatchComposeProps) {
           </div>
         </Card>
 
-        {/* Optional media */}
         <Card>
           <p className="text-xs font-semibold text-[#6B7A99] uppercase tracking-wide mb-3">Attachments (optional)</p>
           <div className="flex gap-2 mb-3">
@@ -104,29 +100,19 @@ export function DispatchCompose({ onDone, onCancel }: DispatchComposeProps) {
             </button>
           </div>
           {showImageField && (
-            <input
-              value={imageUrl}
-              onChange={e => setImageUrl(e.target.value)}
+            <input value={imageUrl} onChange={e => setImageUrl(e.target.value)}
               placeholder="https://… (image URL)"
-              className="w-full bg-[#EEF1F8] rounded-xl px-4 py-2.5 text-sm text-[#0B1A5C] outline-none border-2 border-transparent focus:border-[#CC2A2A] placeholder:text-[#6B7A99] transition-colors mb-2"
-            />
+              className="w-full bg-[#EEF1F8] rounded-xl px-4 py-2.5 text-sm text-[#0B1A5C] outline-none border-2 border-transparent focus:border-[#CC2A2A] placeholder:text-[#6B7A99] transition-colors mb-2" />
           )}
           {showVideoField && (
-            <input
-              value={videoUrl}
-              onChange={e => setVideoUrl(e.target.value)}
+            <input value={videoUrl} onChange={e => setVideoUrl(e.target.value)}
               placeholder="https://youtube.com/… or any video link"
-              className="w-full bg-[#EEF1F8] rounded-xl px-4 py-2.5 text-sm text-[#0B1A5C] outline-none border-2 border-transparent focus:border-[#CC2A2A] placeholder:text-[#6B7A99] transition-colors"
-            />
+              className="w-full bg-[#EEF1F8] rounded-xl px-4 py-2.5 text-sm text-[#0B1A5C] outline-none border-2 border-transparent focus:border-[#CC2A2A] placeholder:text-[#6B7A99] transition-colors" />
           )}
         </Card>
 
-        {/* Acknowledgment toggle */}
         <Card>
-          <button
-            onClick={() => setRequiresAck(v => !v)}
-            className="w-full flex items-center justify-between gap-3"
-          >
+          <button onClick={() => setRequiresAck(v => !v)} className="w-full flex items-center justify-between gap-3">
             <div className="flex-1 text-left">
               <p className="font-medium text-[#0B1A5C] text-sm">Require acknowledgment</p>
               <p className="text-xs text-[#6B7A99] mt-0.5">
@@ -135,19 +121,15 @@ export function DispatchCompose({ onDone, onCancel }: DispatchComposeProps) {
                   : 'Viewing counts as seen. No explicit confirmation needed.'}
               </p>
             </div>
-            <div className={`
-              w-11 h-6 rounded-full transition-colors duration-200 flex-shrink-0 relative
-              ${requiresAck ? 'bg-[#CC2A2A]' : 'bg-[#D8DFEF]'}
-            `}>
-              <div className={`
-                absolute top-0.5 w-5 h-5 rounded-full bg-white shadow-sm transition-transform duration-200
-                ${requiresAck ? 'translate-x-5' : 'translate-x-0.5'}
-              `} />
+            <div className={`w-11 h-6 rounded-full transition-colors duration-200 flex-shrink-0 relative
+              ${requiresAck ? 'bg-[#CC2A2A]' : 'bg-[#D8DFEF]'}`}>
+              <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow-sm transition-transform duration-200
+                ${requiresAck ? 'translate-x-5' : 'translate-x-0.5'}`} />
             </div>
           </button>
         </Card>
 
-        <div className="h-4" /> {/* Bottom padding */}
+        <div className="h-4" />
       </div>
     </div>
   )

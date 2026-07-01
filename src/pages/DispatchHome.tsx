@@ -1,7 +1,6 @@
-import { useState, useEffect, useCallback } from 'react'
-import { supabase } from '../lib/supabase'
+import { useState } from 'react'
 import { clearDispatchAuth } from '../lib/storage'
-import { useRealtimeTable } from '../hooks/useRealtime'
+import { useData } from '../lib/data-context'
 import { Card } from '../components/ui/Card'
 import { Badge } from '../components/ui/Badge'
 import { Button } from '../components/ui/Button'
@@ -11,7 +10,7 @@ import { EmptyState } from '../components/ui/EmptyState'
 import { DispatchCompose } from './DispatchCompose'
 import { DispatchThread } from './DispatchThread'
 import { DispatchRoster } from './DispatchRoster'
-import type { Announcement, AnnouncementView, Driver, Message } from '../types'
+import type { Announcement, Driver } from '../types'
 import { Megaphone, MessageSquare, Users, Plus, ChevronRight, CheckCircle, Clock } from 'lucide-react'
 
 interface DispatchHomeProps {
@@ -20,49 +19,12 @@ interface DispatchHomeProps {
 
 export function DispatchHome({ onSignOut }: DispatchHomeProps) {
   const [tab, setTab] = useState<'announcements' | 'inbox' | 'roster'>('announcements')
-  const [announcements, setAnnouncements] = useState<Announcement[]>([])
-  const [views, setViews] = useState<AnnouncementView[]>([])
-  const [drivers, setDrivers] = useState<Driver[]>([])
-  const [latestMessages, setLatestMessages] = useState<Message[]>([])
-  const [unreadCount, setUnreadCount] = useState(0)
   const [composing, setComposing] = useState(false)
   const [selectedAnnouncement, setSelectedAnnouncement] = useState<Announcement | null>(null)
   const [selectedDriver, setSelectedDriver] = useState<Driver | null>(null)
 
-  const load = useCallback(async () => {
-    const [annRes, viewRes, driverRes] = await Promise.all([
-      supabase.from('announcements').select('*').order('created_at', { ascending: false }),
-      supabase.from('announcement_views').select('*'),
-      supabase.from('drivers').select('*').order('name'),
-    ])
-    if (annRes.data) setAnnouncements(annRes.data as Announcement[])
-    if (viewRes.data) setViews(viewRes.data as AnnouncementView[])
-    if (driverRes.data) setDrivers(driverRes.data as Driver[])
-
-    // Get latest message per driver thread
-    const { data: msgs } = await supabase
-      .from('messages')
-      .select('*')
-      .order('created_at', { ascending: false })
-
-    if (msgs) {
-      const seen = new Set<string>()
-      const latest: Message[] = []
-      for (const m of msgs as Message[]) {
-        if (!seen.has(m.driver_id)) { seen.add(m.driver_id); latest.push(m) }
-      }
-      setLatestMessages(latest)
-
-      const unread = (msgs as Message[]).filter(m => m.sender === 'driver' && !m.read_at).length
-      setUnreadCount(unread)
-    }
-  }, [])
-
-  useEffect(() => { load() }, [load])
-  useRealtimeTable('announcements', load)
-  useRealtimeTable('announcement_views', load)
-  useRealtimeTable('messages', load)
-  useRealtimeTable('drivers', load)
+  const data = useData()
+  const { announcements, views, drivers, latestMessages, unreadDispatch } = data
 
   function handleSignOut() {
     clearDispatchAuth()
@@ -70,7 +32,7 @@ export function DispatchHome({ onSignOut }: DispatchHomeProps) {
   }
 
   if (composing) {
-    return <DispatchCompose drivers={drivers} onDone={() => { setComposing(false); load() }} onCancel={() => setComposing(false)} />
+    return <DispatchCompose onDone={() => setComposing(false)} onCancel={() => setComposing(false)} />
   }
 
   if (selectedAnnouncement) {
@@ -85,17 +47,12 @@ export function DispatchHome({ onSignOut }: DispatchHomeProps) {
   }
 
   if (selectedDriver) {
-    return (
-      <DispatchThread
-        driver={selectedDriver}
-        onBack={() => { setSelectedDriver(null); load() }}
-      />
-    )
+    return <DispatchThread driver={selectedDriver} onBack={() => setSelectedDriver(null)} />
   }
 
   const tabs = [
     { key: 'announcements', label: 'Posts', icon: <Megaphone size={20} /> },
-    { key: 'inbox', label: 'Inbox', icon: <MessageSquare size={20} />, badge: unreadCount },
+    { key: 'inbox', label: 'Inbox', icon: <MessageSquare size={20} />, badge: unreadDispatch },
     { key: 'roster', label: 'Roster', icon: <Users size={20} /> },
   ]
 
@@ -157,7 +114,6 @@ export function DispatchHome({ onSignOut }: DispatchHomeProps) {
                         </span>
                       </div>
 
-                      {/* Progress bar */}
                       {ann.requires_ack && (
                         <div className="h-1.5 bg-[#EEF1F8] rounded-full overflow-hidden">
                           <div
@@ -217,9 +173,7 @@ export function DispatchHome({ onSignOut }: DispatchHomeProps) {
           </div>
         )}
 
-        {tab === 'roster' && (
-          <DispatchRoster drivers={drivers} onUpdate={load} />
-        )}
+        {tab === 'roster' && <DispatchRoster />}
       </div>
 
       <TabBar tabs={tabs} active={tab} onChange={k => setTab(k as typeof tab)} />
@@ -232,7 +186,7 @@ function AckDetail({
 }: {
   announcement: Announcement
   drivers: Driver[]
-  views: AnnouncementView[]
+  views: { driver_id: string; viewed_at: string; acknowledged_at?: string | null }[]
   onBack: () => void
 }) {
   const ackedIds = new Set(views.filter(v => v.acknowledged_at).map(v => v.driver_id))
@@ -250,7 +204,6 @@ function AckDetail({
       </div>
 
       <div className="flex-1 overflow-y-auto scroll-area scrollbar-hide px-4 py-4 space-y-4">
-        {/* Summary */}
         <div className="grid grid-cols-2 gap-3">
           <Card>
             <p className="text-2xl font-bold text-[#2E7D52]">{done.length}/{drivers.length}</p>
@@ -262,7 +215,6 @@ function AckDetail({
           </Card>
         </div>
 
-        {/* Progress bar */}
         <div className="h-2 bg-[#D8DFEF] rounded-full overflow-hidden">
           <div
             className="h-full bg-[#2E7D52] rounded-full transition-all duration-500"
@@ -270,7 +222,6 @@ function AckDetail({
           />
         </div>
 
-        {/* Pending first */}
         {pending.length > 0 && (
           <div>
             <p className="text-xs font-semibold text-[#CC2A2A] uppercase tracking-wide mb-2">Outstanding ({pending.length})</p>
