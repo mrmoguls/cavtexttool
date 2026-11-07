@@ -11,6 +11,7 @@ import { Button } from '../../components/ui/Button'
 import { Field, ScrollBody, SectionLabel, Segmented, Select, SubHeader, TextInput, Toggle, Warning } from '../../components/ui/Form'
 import type { Dow, Line, LineAssignment, LineDay } from '../../types'
 import { Plus, Trash2, UserPlus, ArrowUpCircle } from 'lucide-react'
+import { useConfirm } from '../../components/ui/ConfirmDialog'
 
 export function AdminLines({ onBack }: { onBack: () => void }) {
   const data = useData()
@@ -72,6 +73,7 @@ export function AdminLines({ onBack }: { onBack: () => void }) {
 
 function LineForm({ line, onDone }: { line: Line | null; onDone: () => void }) {
   const data = useData()
+  const confirm = useConfirm()
   const [form, setForm] = useState<LineDraft>(() => line
     ? (({ converted_to_core_at: _c, created_at: _ca, ...rest }) => rest)(line)
     : {
@@ -123,7 +125,7 @@ function LineForm({ line, onDone }: { line: Line | null; onDone: () => void }) {
   }
 
   async function convertToCore() {
-    if (!line || !confirm(`Convert ${line.code} to a core line? It will be included in the next quarterly bid.`)) return
+    if (!line || !(await confirm({ title: `Convert ${line.code} to a core line?`, body: 'Core lines are included in the next quarterly bid.', confirmLabel: 'Convert' }))) return
     try {
       await data.convertLineToCore(line.id)
       setForm(f => ({ ...f, category: 'core' }))
@@ -133,7 +135,7 @@ function LineForm({ line, onDone }: { line: Line | null; onDone: () => void }) {
   }
 
   async function remove() {
-    if (!line || !confirm(`Delete line ${line.code}?`)) return
+    if (!line || !(await confirm({ title: `Delete line ${line.code}?`, confirmLabel: 'Delete', danger: true }))) return
     try {
       await data.deleteLine(line.id)
       onDone()
@@ -215,7 +217,9 @@ function LineForm({ line, onDone }: { line: Line | null; onDone: () => void }) {
 function LineHolders({ line }: { line: Line }) {
   const data = useData()
   const { me } = useAuth()
+  const confirm = useConfirm()
   const today = todayISO()
+  const [ending, setEnding] = useState<{ id: string; date: string } | null>(null)
   const [adding, setAdding] = useState(false)
   const [employeeId, setEmployeeId] = useState('')
   const [from, setFrom] = useState(today)
@@ -244,7 +248,11 @@ function LineHolders({ line }: { line: Line }) {
 
   async function assign() {
     if (!chosen) return
-    if (chosen.reasons.length && !confirm(`${chosen.e.name} isn't eligible for ${line.code}:\n${chosen.reasons.join('\n')}\n\nAssign anyway?`)) return
+    if (chosen.reasons.length && !(await confirm({
+      title: `${chosen.e.name} isn't eligible for ${line.code}`,
+      body: <>{chosen.reasons.map(r => <p key={r}>{r}</p>)}<p className="pt-1">Assign anyway?</p></>,
+      confirmLabel: 'Assign anyway',
+    }))) return
     setBusy(true)
     setError(null)
     try {
@@ -258,16 +266,18 @@ function LineHolders({ line }: { line: Line }) {
     }
   }
 
-  async function end(a: LineAssignment) {
-    const name = data.employeesById.get(a.employee_id)?.name ?? 'this person'
-    const last = prompt(`Last day ${name} holds ${line.code} (YYYY-MM-DD):`, addDays(today, -1))
-    if (!last) return
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(last) || last < a.effective_from) { alert('Enter a date on or after the start date.'); return }
-    try { await data.endAssignment(a.id, last) } catch (err) { setError(err instanceof Error ? err.message : 'Update failed.') }
+  async function saveEnd(a: LineAssignment) {
+    if (!ending) return
+    if (!ending.date || ending.date < a.effective_from) { setError('The last day must be on or after the start date.'); return }
+    setError(null)
+    try {
+      await data.endAssignment(a.id, ending.date)
+      setEnding(null)
+    } catch (err) { setError(err instanceof Error ? err.message : 'Update failed.') }
   }
 
   async function undo(a: LineAssignment) {
-    if (!confirm('Remove this assignment entirely? Use only to fix a mistake — it stays in the audit log.')) return
+    if (!(await confirm({ title: 'Remove this assignment?', body: 'Use this only to fix a mistake. To record that someone left the line, use End instead. Either way it stays in the history log.', confirmLabel: 'Remove', danger: true }))) return
     try { await data.deleteAssignment(a.id) } catch (err) { setError(err instanceof Error ? err.message : 'Delete failed.') }
   }
 
@@ -276,17 +286,30 @@ function LineHolders({ line }: { line: Line }) {
       <p className="text-xs font-semibold text-[#6B7A99] uppercase tracking-wide">Who holds this line</p>
       {current.length === 0 && <p className="text-sm text-[#CC2A2A] font-medium">Nobody — this line is open.</p>}
       {current.map(a => (
-        <div key={a.id} className="flex items-center gap-2">
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-[#0B1A5C]">{data.employeesById.get(a.employee_id)?.name ?? 'Unknown'}</p>
-            <p className="text-xs text-[#6B7A99]">
-              From {formatDate(a.effective_from)}{a.effective_to ? ` to ${formatDate(a.effective_to)}` : ''} · {a.source}
-            </p>
+        <div key={a.id} className="space-y-2">
+          <div className="flex items-center gap-2">
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-[#0B1A5C]">{data.employeesById.get(a.employee_id)?.name ?? 'Unknown'}</p>
+              <p className="text-xs text-[#6B7A99]">
+                From {formatDate(a.effective_from)}{a.effective_to ? ` to ${formatDate(a.effective_to)}` : ''} · {a.source}
+              </p>
+            </div>
+            <Button size="sm" variant="secondary" onClick={() => setEnding({ id: a.id, date: a.effective_to ?? addDays(today, -1) })}>End</Button>
+            <button onClick={() => undo(a)} className="p-1.5 rounded-lg text-[#6B7A99] hover:text-red-500 hover:bg-red-50" aria-label="Remove assignment">
+              <Trash2 size={15} />
+            </button>
           </div>
-          <Button size="sm" variant="secondary" onClick={() => end(a)}>End</Button>
-          <button onClick={() => undo(a)} className="p-1.5 rounded-lg text-[#6B7A99] hover:text-red-500 hover:bg-red-50" aria-label="Remove assignment">
-            <Trash2 size={15} />
-          </button>
+          {ending?.id === a.id && (
+            <div className="flex items-end gap-2 bg-[#EEF1F8] rounded-xl p-2">
+              <div className="flex-1">
+                <Field label="Last day on this line">
+                  <TextInput type="date" className="bg-white" value={ending.date} onChange={e => setEnding({ id: a.id, date: e.target.value })} />
+                </Field>
+              </div>
+              <Button size="sm" onClick={() => saveEnd(a)}>Save</Button>
+              <Button size="sm" variant="secondary" onClick={() => setEnding(null)}>Cancel</Button>
+            </div>
+          )}
         </div>
       ))}
 

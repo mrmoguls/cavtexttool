@@ -7,6 +7,7 @@ import { Button } from '../../components/ui/Button'
 import { Field, ScrollBody, Segmented, SubHeader, TextInput, Toggle, Warning } from '../../components/ui/Form'
 import type { Block, CrewRole, TimeRule } from '../../types'
 import { Plus, Trash2 } from 'lucide-react'
+import { useConfirm } from '../../components/ui/ConfirmDialog'
 
 export function AdminBlocks({ onBack }: { onBack: () => void }) {
   const data = useData()
@@ -44,6 +45,7 @@ export function AdminBlocks({ onBack }: { onBack: () => void }) {
 
 function BlockForm({ block, onDone }: { block: Block | null; onDone: () => void }) {
   const data = useData()
+  const confirm = useConfirm()
   const [form, setForm] = useState<BlockDraft>(() => block
     ? { ...block, default_start: toHHMM(block.default_start) || null, default_end: toHHMM(block.default_end) || null, target_paid_hours: Number(block.target_paid_hours) }
     : {
@@ -93,7 +95,7 @@ function BlockForm({ block, onDone }: { block: Block | null; onDone: () => void 
   }
 
   async function remove() {
-    if (!block || !confirm(`Delete block ${block.code}?`)) return
+    if (!block || !(await confirm({ title: `Delete block ${block.code}?`, confirmLabel: 'Delete', danger: true }))) return
     try {
       await data.deleteBlock(block.id)
       onDone()

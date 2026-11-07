@@ -25,6 +25,14 @@ interface AuthAPI {
 const AuthContext = createContext<AuthAPI>(null!)
 export function useAuth() { return useContext(AuthContext) }
 
+// Browser storage can be blocked (private windows, embedded previews) — never let that crash sign-in.
+const store = {
+  get(k: string) { try { return localStorage.getItem(k) } catch { return null } },
+  set(k: string, v: string) { try { localStorage.setItem(k, v) } catch { /* session-only */ } },
+  remove(k: string) { try { localStorage.removeItem(k) } catch { /* ignore */ } },
+}
+let demoSessionFallback: string | null = null
+
 function last4(phone: string | undefined) {
   return (phone ?? '').replace(/\D/g, '').slice(-4)
 }
@@ -35,7 +43,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const loadMe = useCallback(async (): Promise<Employee | null> => {
     if (isDemoMode) {
-      const id = localStorage.getItem(DEMO_SESSION_KEY)
+      const id = store.get(DEMO_SESSION_KEY) ?? demoSessionFallback
       const emp = (demoStore.select('employees') as unknown as Employee[]).find(e => e.id === id && e.active) ?? null
       demoStore.actorId = emp?.id ?? null
       return emp
@@ -59,7 +67,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [loadMe])
 
   useEffect(() => {
-    LEGACY_KEYS.forEach(k => localStorage.removeItem(k))
+    LEGACY_KEYS.forEach(k => store.remove(k))
     refreshMe()
     if (isDemoMode) return
     const { data } = supabase.auth.onAuthStateChange((event) => {
@@ -87,7 +95,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const contact = demoStore.select('employee_contacts').find(c => c.employee_id === employeeId) as { phone: string } | undefined
       if (!contact || last4(contact.phone).length < 4) return { ok: false, error: 'No phone number on file yet. Ask dispatch to add it.' }
       if (last4(contact.phone) !== pin) return { ok: false, error: 'Wrong PIN. It is the last 4 digits of your phone number.' }
-      localStorage.setItem(DEMO_SESSION_KEY, employeeId)
+      demoSessionFallback = employeeId
+      store.set(DEMO_SESSION_KEY, employeeId)
       await refreshMe()
       return { ok: true }
     }
@@ -108,7 +117,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signOut = useCallback(async () => {
     if (isDemoMode) {
-      localStorage.removeItem(DEMO_SESSION_KEY)
+      demoSessionFallback = null
+      store.remove(DEMO_SESSION_KEY)
       demoStore.actorId = null
     } else {
       await supabase.auth.signOut()
