@@ -1,10 +1,31 @@
-export type UserRole = 'driver' | 'dispatch'
+export type EmployeeRole = 'driver' | 'attendant' | 'dispatcher' | 'admin'
+export type EmploymentType = 'FT' | 'PT'
+export type CrewRole = 'driver' | 'attendant'
 
-export interface Driver {
+export interface Employee {
   id: string
   name: string
-  created_at: string
+  role: EmployeeRole
+  employment_type: EmploymentType
+  seniority_date: string | null
+  hire_seq: number | null
+  gurney_qualified: boolean
+  active: boolean
+  auth_user_id?: string | null
   push_subscription?: string | null
+  created_at: string
+}
+
+export interface EmployeeContact {
+  employee_id: string
+  phone: string
+  updated_at?: string
+}
+
+export interface DirectoryEntry {
+  id: string
+  name: string
+  role: EmployeeRole
 }
 
 export interface Announcement {
@@ -35,7 +56,90 @@ export interface Message {
   read_at?: string | null
 }
 
-export interface AppUser {
-  type: 'driver'
-  driver: Driver
+// ─── Scheduling ───────────────────────────────────────────────────────────────
+
+export type TimeRule = 'fixed' | 'variable'
+
+export interface Block {
+  id: string
+  code: string
+  name: string
+  crew_roles: CrewRole[]
+  start_type: TimeRule
+  end_type: TimeRule
+  default_start: string | null // 'HH:MM' or 'HH:MM:SS'
+  default_end: string | null
+  target_paid_hours: number
+  /** Applies to the driver position on this block. */
+  requires_gurney_qual: boolean
+  start_rule_note: string | null
+  end_rule_note: string | null
+  active: boolean
+  sort_order: number
+  created_at?: string
+}
+
+export type LineCategory = 'core' | 'growth'
+
+export interface Line {
+  id: string
+  code: string
+  name: string
+  employment_type: EmploymentType
+  category: LineCategory
+  role: CrewRole
+  requires_gurney_qual: boolean
+  is_flex: boolean
+  positions: number
+  active: boolean
+  notes: string | null
+  sort_order: number
+  converted_to_core_at?: string | null
+  created_at?: string
+}
+
+/** 0 = Sunday … 6 = Saturday */
+export type Dow = 0 | 1 | 2 | 3 | 4 | 5 | 6
+
+export interface LineDay {
+  id: string
+  line_id: string
+  dow: Dow
+  block_id: string
+}
+
+export interface CoverageRequirement {
+  id: string
+  dow: Dow
+  block_id: string
+  role: CrewRole
+  required_count: number
+}
+
+export interface LineAssignment {
+  id: string
+  line_id: string
+  employee_id: string
+  bid_period_id: string | null
+  source: 'manual' | 'auto' | 'growth_offer'
+  effective_from: string // YYYY-MM-DD
+  effective_to: string | null
+  created_by?: string | null
+  created_at?: string
+}
+
+export interface AppSetting {
+  key: string
+  value: unknown
+}
+
+export interface AuditEntry {
+  id: number
+  actor_employee_id: string | null
+  entity: string
+  entity_id: string | null
+  action: 'insert' | 'update' | 'delete'
+  before: Record<string, unknown> | null
+  after: Record<string, unknown> | null
+  at: string
 }

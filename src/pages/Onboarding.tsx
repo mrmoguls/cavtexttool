@@ -1,46 +1,54 @@
-import { useState } from 'react'
-import { useData } from '../lib/data-context'
-import { storeIdentity, authDispatch } from '../lib/storage'
+import { useEffect, useState } from 'react'
+import { useAuth } from '../lib/auth'
 import { isStandaloneMode } from '../lib/push'
+import { isDemoMode } from '../lib/supabase'
+import { demoStore } from '../lib/demo-store'
 import { Button } from '../components/ui/Button'
 import { Logo } from '../components/ui/Logo'
-import type { Driver, AppUser } from '../types'
-import { Smartphone, Download, Shield } from 'lucide-react'
+import type { DirectoryEntry } from '../types'
+import { Smartphone, Download, Lock, ChevronLeft } from 'lucide-react'
 
-interface OnboardingProps {
-  onComplete: (user: AppUser) => void
-  onDispatchMode: () => void
+type Step = 'install-prompt' | 'pick-name' | 'pin'
+
+const ROLE_LABEL: Record<DirectoryEntry['role'], string> = {
+  driver: 'Driver', attendant: 'Attendant', dispatcher: 'Dispatch', admin: 'Admin',
 }
 
-type Step = 'install-prompt' | 'pick-name' | 'dispatch-pin'
-
-export function Onboarding({ onComplete, onDispatchMode }: OnboardingProps) {
-  const [step, setStep] = useState<Step>(() => {
-    // Skip install prompt if already standalone
-    if (isStandaloneMode()) return 'pick-name'
-    return 'install-prompt'
-  })
-  const { drivers } = useData()
-  const [loading, setLoading] = useState(false)
+export function Onboarding() {
+  const auth = useAuth()
+  const [step, setStep] = useState<Step>(() => (isStandaloneMode() ? 'pick-name' : 'install-prompt'))
+  const [directory, setDirectory] = useState<DirectoryEntry[] | null>(null)
+  const [dirError, setDirError] = useState<string | null>(null)
+  const [selected, setSelected] = useState<DirectoryEntry | null>(null)
   const [pin, setPin] = useState('')
-  const [pinError, setPinError] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [busy, setBusy] = useState(false)
   const [isIOS] = useState(() => /iphone|ipad|ipod/i.test(navigator.userAgent))
 
-  async function selectDriver(driver: Driver) {
-    setLoading(true)
-    const user: AppUser = { type: 'driver', driver }
-    storeIdentity(user)
-    onComplete(user)
+  const { loadDirectory } = auth
+  useEffect(() => {
+    loadDirectory()
+      .then(setDirectory)
+      .catch(err => setDirError(err instanceof Error ? err.message : 'Could not load the team list.'))
+  }, [loadDirectory])
+
+  async function submitPin(value = pin) {
+    if (!selected || busy) return
+    setBusy(true)
+    setError(null)
+    const res = await auth.signIn(selected.id, value)
+    setBusy(false)
+    if (!res.ok) {
+      setError(res.error)
+      setPin('')
+    }
   }
 
-  function tryDispatchPin() {
-    if (authDispatch(pin)) {
-      onDispatchMode()
-    } else {
-      setPinError(true)
-      setPin('')
-      setTimeout(() => setPinError(false), 1500)
-    }
+  function onPinChange(v: string) {
+    const digits = v.replace(/\D/g, '').slice(0, 4)
+    setPin(digits)
+    setError(null)
+    if (digits.length === 4) submitPin(digits)
   }
 
   if (step === 'install-prompt') {
@@ -90,42 +98,58 @@ export function Onboarding({ onComplete, onDispatchMode }: OnboardingProps) {
           </div>
         </div>
 
-        <Button
-          variant="ghost"
-          onClick={() => setStep('pick-name')}
-          className="text-[#6B7A99]"
-        >
+        <Button variant="ghost" onClick={() => setStep('pick-name')} className="text-[#6B7A99]">
           Skip for now, continue in browser
         </Button>
       </div>
     )
   }
 
-  if (step === 'dispatch-pin') {
+  if (step === 'pin' && selected) {
+    const demoPin = isDemoMode
+      ? String((demoStore.select('employee_contacts').find(c => c.employee_id === selected.id) as { phone?: string } | undefined)?.phone ?? '').replace(/\D/g, '').slice(-4)
+      : null
     return (
       <div className="min-h-svh bg-[#EEF1F8] flex flex-col items-center justify-center px-6 gap-6">
         <Logo size="lg" />
         <div className="bg-[#FFFFFF] rounded-2xl p-6 shadow-sm w-full max-w-sm space-y-4">
           <div className="flex items-center gap-3">
-            <Shield size={20} className="text-[#CC2A2A]" />
-            <p className="font-semibold text-[#0B1A5C]">Dispatch Access</p>
+            <div className="w-10 h-10 rounded-full bg-[#FCE9E9] flex items-center justify-center text-[#CC2A2A] font-semibold flex-shrink-0">
+              {selected.name.charAt(0).toUpperCase()}
+            </div>
+            <div>
+              <p className="font-semibold text-[#0B1A5C]">{selected.name}</p>
+              <p className="text-xs text-[#6B7A99]">{ROLE_LABEL[selected.role]}</p>
+            </div>
           </div>
-          <p className="text-sm text-[#6B7A99]">Enter the dispatch PIN to continue.</p>
+          <div className="flex items-start gap-2 text-sm text-[#6B7A99]">
+            <Lock size={16} className="mt-0.5 flex-shrink-0" />
+            <p>Enter your PIN — the <span className="font-semibold text-[#1B2E6B]">last 4 digits of your phone number</span>.</p>
+          </div>
           <input
             type="password"
             inputMode="numeric"
-            maxLength={8}
+            autoComplete="one-time-code"
+            autoFocus
+            maxLength={4}
             value={pin}
-            onChange={e => setPin(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && tryDispatchPin()}
-            placeholder="PIN"
-            className={`w-full bg-[#EEF1F8] rounded-xl px-4 py-3 text-2xl tracking-widest text-center outline-none border-2 transition-colors
-              ${pinError ? 'border-red-400' : 'border-transparent focus:border-[#CC2A2A]'}
+            disabled={busy}
+            onChange={e => onPinChange(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && submitPin()}
+            placeholder="••••"
+            aria-label="4-digit PIN"
+            className={`w-full bg-[#EEF1F8] rounded-xl px-4 py-3 text-2xl tracking-[0.5em] text-center outline-none border-2 transition-colors
+              ${error ? 'border-red-400' : 'border-transparent focus:border-[#CC2A2A]'}
             `}
           />
-          {pinError && <p className="text-xs text-red-500 text-center">Incorrect PIN</p>}
-          <Button fullWidth onClick={tryDispatchPin}>Enter</Button>
-          <Button variant="ghost" fullWidth onClick={() => setStep('pick-name')}>Back to driver list</Button>
+          {error && <p className="text-sm text-red-600 text-center">{error}</p>}
+          {demoPin && <p className="text-xs text-[#6B7A99] text-center">Demo mode — this person's PIN is {demoPin}</p>}
+          <Button fullWidth onClick={() => submitPin()} disabled={busy || pin.length !== 4}>
+            {busy ? 'Signing in…' : 'Sign in'}
+          </Button>
+          <Button variant="ghost" fullWidth onClick={() => { setStep('pick-name'); setPin(''); setError(null) }}>
+            <ChevronLeft size={16} /> Not you? Pick another name
+          </Button>
         </div>
       </div>
     )
@@ -137,19 +161,25 @@ export function Onboarding({ onComplete, onDispatchMode }: OnboardingProps) {
       <div className="flex flex-col items-center gap-3">
         <Logo size="lg" />
         <p className="text-[#6B7A99] text-sm text-center max-w-xs">
-          Tap your name to get started. This device will remember you.
+          Tap your name, then enter your PIN. This device will keep you signed in.
         </p>
+        {isDemoMode && (
+          <p className="text-xs text-[#6B7A99] text-center max-w-xs bg-white rounded-xl px-3 py-2">
+            Demo mode: try <b>Pat Morgan</b> (admin), <b>Dana Reyes</b> (dispatch) or any driver.
+          </p>
+        )}
       </div>
 
       <div className="flex flex-col gap-2 w-full max-w-sm mx-auto">
-        {drivers.length === 0 && (
-          <p className="text-center text-[#6B7A99] py-8 text-sm">Loading roster…</p>
+        {dirError && <p className="text-center text-red-600 py-8 text-sm">{dirError}</p>}
+        {!directory && !dirError && <p className="text-center text-[#6B7A99] py-8 text-sm">Loading team…</p>}
+        {directory?.length === 0 && (
+          <p className="text-center text-[#6B7A99] py-8 text-sm">No one is set up yet. See SETUP.md to add the first admin.</p>
         )}
-        {drivers.map(driver => (
+        {directory?.map(person => (
           <button
-            key={driver.id}
-            onClick={() => selectDriver(driver)}
-            disabled={loading}
+            key={person.id}
+            onClick={() => { setSelected(person); setStep('pin') }}
             className="
               w-full bg-[#FFFFFF] rounded-2xl px-4 py-4 text-left
               flex items-center gap-3
@@ -161,20 +191,14 @@ export function Onboarding({ onComplete, onDispatchMode }: OnboardingProps) {
             "
           >
             <div className="w-10 h-10 rounded-full bg-[#FCE9E9] flex items-center justify-center text-[#CC2A2A] font-semibold text-base flex-shrink-0">
-              {driver.name.charAt(0).toUpperCase()}
+              {person.name.charAt(0).toUpperCase()}
             </div>
-            <span className="font-medium text-[#0B1A5C]">{driver.name}</span>
+            <span className="font-medium text-[#0B1A5C] flex-1">{person.name}</span>
+            {person.role !== 'driver' && (
+              <span className="text-[10px] font-semibold uppercase tracking-wide text-[#6B7A99]">{ROLE_LABEL[person.role]}</span>
+            )}
           </button>
         ))}
-      </div>
-
-      <div className="mt-auto flex justify-center">
-        <button
-          onClick={() => setStep('dispatch-pin')}
-          className="text-sm text-[#6B7A99] underline underline-offset-2"
-        >
-          I'm dispatch / admin
-        </button>
       </div>
     </div>
   )

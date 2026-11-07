@@ -8,11 +8,11 @@ import { TopBar } from '../components/ui/TopBar'
 import { TabBar } from '../components/ui/TabBar'
 import { EmptyState } from '../components/ui/EmptyState'
 import { DriverMessages } from './DriverMessages'
-import type { Driver } from '../types'
+import type { Employee } from '../types'
 import { Bell, MessageSquare, Megaphone, CheckCircle, Play } from 'lucide-react'
 
 interface DriverHomeProps {
-  driver: Driver
+  driver: Employee
   onSignOut: () => void
 }
 
@@ -35,7 +35,7 @@ export function DriverHome({ driver, onSignOut }: DriverHomeProps) {
   }
 
   async function enablePush() {
-    const ok = await subscribeToPush(driver.id)
+    const ok = await subscribeToPush()
     setPushEnabled(ok)
   }
 

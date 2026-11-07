@@ -2,11 +2,11 @@ import { useState, useEffect, useRef } from 'react'
 import { useData } from '../lib/data-context'
 import { Button } from '../components/ui/Button'
 import { EmptyState } from '../components/ui/EmptyState'
-import type { Driver } from '../types'
+import type { Employee } from '../types'
 import { Send, MessageSquare } from 'lucide-react'
 
 interface DriverMessagesProps {
-  driver: Driver
+  driver: Employee
 }
 
 export function DriverMessages({ driver }: DriverMessagesProps) {

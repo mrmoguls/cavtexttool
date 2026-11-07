@@ -1,11 +1,11 @@
 import { useState, useEffect, useRef } from 'react'
 import { useData } from '../lib/data-context'
 import { Button } from '../components/ui/Button'
-import type { Driver } from '../types'
+import type { Employee } from '../types'
 import { Send } from 'lucide-react'
 
 interface DispatchThreadProps {
-  driver: Driver
+  driver: Employee
   onBack: () => void
 }
 

@@ -1,4 +1,4 @@
-import { supabase } from './supabase'
+import { isDemoMode, supabase } from './supabase'
 
 const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY as string
 
@@ -10,7 +10,7 @@ function urlBase64ToUint8Array(base64String: string): ArrayBuffer {
   return arr.buffer as ArrayBuffer
 }
 
-export async function subscribeToPush(driverId: string): Promise<boolean> {
+export async function subscribeToPush(): Promise<boolean> {
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) return false
   if (!VAPID_PUBLIC_KEY) return false
 
@@ -24,10 +24,7 @@ export async function subscribeToPush(driverId: string): Promise<boolean> {
       applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
     })
 
-    await supabase
-      .from('drivers')
-      .update({ push_subscription: JSON.stringify(subscription) })
-      .eq('id', driverId)
+    if (!isDemoMode) await supabase.rpc('set_my_push_subscription', { sub: JSON.stringify(subscription) })
 
     return true
   } catch (err) {
@@ -36,12 +33,12 @@ export async function subscribeToPush(driverId: string): Promise<boolean> {
   }
 }
 
-export async function unsubscribeFromPush(driverId: string) {
+export async function unsubscribeFromPush() {
   try {
     const registration = await navigator.serviceWorker.ready
     const sub = await registration.pushManager.getSubscription()
     if (sub) await sub.unsubscribe()
-    await supabase.from('drivers').update({ push_subscription: null }).eq('id', driverId)
+    if (!isDemoMode) await supabase.rpc('set_my_push_subscription', { sub: null })
   } catch {
     // ignore
   }

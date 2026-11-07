@@ -1,119 +1,126 @@
-import { DEMO_DRIVERS, DEMO_ANNOUNCEMENTS, DEMO_VIEWS, DEMO_MESSAGES } from './demo-data'
-import type { Driver, Announcement, AnnouncementView, Message } from '../types'
+// In-memory stand-in for Supabase when no keys are configured (demo mode).
+// Holds every table as a plain array and mimics insert/update/delete + realtime + the audit trigger.
+import { DEMO_ANNOUNCEMENTS, DEMO_ASSIGNMENTS, DEMO_CONTACTS, DEMO_EMPLOYEES, DEMO_MESSAGES, DEMO_VIEWS } from './demo-data'
+import { SEED_BLOCKS, SEED_COVERAGE, SEED_LINE_DAYS, SEED_LINES, SEED_SETTINGS } from './scheduling/seed'
+import type { AuditEntry } from '../types'
+import { PRIMARY_KEYS, AUDITED_TABLES, type TableName } from './tables'
 
+type Row = Record<string, unknown>
 type Listener = () => void
 
+function clone<T>(v: T): T {
+  return JSON.parse(JSON.stringify(v)) as T
+}
+
+function initialTables(): Record<TableName, Row[]> {
+  return {
+    employees: clone(DEMO_EMPLOYEES) as unknown as Row[],
+    employee_contacts: clone(DEMO_CONTACTS) as unknown as Row[],
+    announcements: clone(DEMO_ANNOUNCEMENTS) as unknown as Row[],
+    announcement_views: clone(DEMO_VIEWS) as unknown as Row[],
+    messages: clone(DEMO_MESSAGES) as unknown as Row[],
+    blocks: clone(SEED_BLOCKS) as unknown as Row[],
+    lines: clone(SEED_LINES) as unknown as Row[],
+    line_days: clone(SEED_LINE_DAYS) as unknown as Row[],
+    coverage_requirements: clone(SEED_COVERAGE) as unknown as Row[],
+    line_assignments: clone(DEMO_ASSIGNMENTS) as unknown as Row[],
+    app_settings: Object.entries(SEED_SETTINGS).map(([key, value]) => ({ key, value })),
+    audit_log: [],
+  }
+}
+
+let seq = 0
+const newId = (prefix: string) => `${prefix}-${Date.now().toString(36)}-${(seq++).toString(36)}`
+
+function matches(row: Row, match: Row): boolean {
+  return Object.entries(match).every(([k, v]) => row[k] === v)
+}
+
 class DemoStore {
-  drivers: Driver[] = [...DEMO_DRIVERS]
-  announcements: Announcement[] = [...DEMO_ANNOUNCEMENTS]
-  views: AnnouncementView[] = [...DEMO_VIEWS]
-  messages: Message[] = [...DEMO_MESSAGES]
+  tables = initialTables()
+  /** Who is "signed in" — used as the audit actor. */
+  actorId: string | null = null
+  private listeners = new Map<TableName, Set<Listener>>()
+  private auditSeq = 1
 
-  private listeners = new Set<Listener>()
-
-  subscribe(fn: Listener) {
-    this.listeners.add(fn)
-    return () => { this.listeners.delete(fn) }
+  subscribe(table: TableName, fn: Listener) {
+    if (!this.listeners.has(table)) this.listeners.set(table, new Set())
+    this.listeners.get(table)!.add(fn)
+    return () => { this.listeners.get(table)?.delete(fn) }
   }
 
-  private notify() {
-    this.listeners.forEach(fn => fn())
+  private notify(table: TableName) {
+    this.listeners.get(table)?.forEach(fn => fn())
   }
 
-  addDriver(name: string): Driver {
-    const d: Driver = { id: `d-${Date.now()}`, name, created_at: new Date().toISOString() }
-    this.drivers.push(d)
-    this.drivers.sort((a, b) => a.name.localeCompare(b.name))
-    this.notify()
-    return d
-  }
-
-  removeDriver(id: string) {
-    this.drivers = this.drivers.filter(d => d.id !== id)
-    this.messages = this.messages.filter(m => m.driver_id !== id)
-    this.views = this.views.filter(v => v.driver_id !== id)
-    this.notify()
-  }
-
-  addAnnouncement(ann: Omit<Announcement, 'id' | 'created_at' | 'created_by'>): Announcement {
-    const a: Announcement = { ...ann, id: `a-${Date.now()}`, created_at: new Date().toISOString(), created_by: 'dispatch' }
-    this.announcements.unshift(a)
-    this.notify()
-    return a
-  }
-
-  markViewed(announcementId: string, driverId: string) {
-    if (this.views.find(v => v.announcement_id === announcementId && v.driver_id === driverId)) return
-    this.views.push({
-      id: `v-${Date.now()}`,
-      announcement_id: announcementId,
-      driver_id: driverId,
-      viewed_at: new Date().toISOString(),
-      acknowledged_at: null,
-    })
-    this.notify()
-  }
-
-  acknowledge(announcementId: string, driverId: string) {
-    const existing = this.views.find(v => v.announcement_id === announcementId && v.driver_id === driverId)
-    if (existing) {
-      existing.acknowledged_at = new Date().toISOString()
-    } else {
-      this.views.push({
-        id: `v-${Date.now()}`,
-        announcement_id: announcementId,
-        driver_id: driverId,
-        viewed_at: new Date().toISOString(),
-        acknowledged_at: new Date().toISOString(),
-      })
+  private audit(table: TableName, action: AuditEntry['action'], before: Row | null, after: Row | null) {
+    if (!AUDITED_TABLES.includes(table)) return
+    const row = (after ?? before)!
+    const entry: AuditEntry = {
+      id: this.auditSeq++,
+      actor_employee_id: this.actorId,
+      entity: table,
+      entity_id: typeof row.id === 'string' ? row.id : null,
+      action,
+      before: before ? clone(before) : null,
+      after: after ? clone(after) : null,
+      at: new Date().toISOString(),
     }
-    this.notify()
+    this.tables.audit_log.push(entry as unknown as Row)
+    this.notify('audit_log')
   }
 
-  sendMessage(driverId: string, sender: 'driver' | 'dispatch', body: string): Message {
-    const m: Message = {
-      id: `m-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-      driver_id: driverId,
-      sender,
-      body,
-      created_at: new Date().toISOString(),
-      read_at: null,
-    }
-    this.messages.push(m)
-    this.notify()
-    return m
+  select(table: TableName): Row[] {
+    return clone(this.tables[table])
   }
 
-  markMessagesRead(driverId: string, senderToMark: 'driver' | 'dispatch') {
-    const now = new Date().toISOString()
-    this.messages.forEach(m => {
-      if (m.driver_id === driverId && m.sender === senderToMark && !m.read_at) {
-        m.read_at = now
+  insert(table: TableName, rows: Row[]): Row[] {
+    const pk = PRIMARY_KEYS[table]
+    const out: Row[] = []
+    for (const r of rows) {
+      const row: Row = { ...r }
+      if (pk === 'id' && row.id == null) row.id = newId(table.slice(0, 3))
+      if (this.tables[table].some(x => x[pk] === row[pk])) {
+        throw new Error(`Duplicate ${table} ${String(row[pk])}`)
       }
-    })
-    this.notify()
-  }
-
-  getDriverMessages(driverId: string): Message[] {
-    return this.messages.filter(m => m.driver_id === driverId).sort((a, b) => a.created_at.localeCompare(b.created_at))
-  }
-
-  getUnreadCountForDriver(driverId: string): number {
-    return this.messages.filter(m => m.driver_id === driverId && m.sender === 'dispatch' && !m.read_at).length
-  }
-
-  getUnreadCountForDispatch(): number {
-    return this.messages.filter(m => m.sender === 'driver' && !m.read_at).length
-  }
-
-  getLatestMessagePerDriver(): Message[] {
-    const sorted = [...this.messages].sort((a, b) => b.created_at.localeCompare(a.created_at))
-    const seen = new Set<string>()
-    const result: Message[] = []
-    for (const m of sorted) {
-      if (!seen.has(m.driver_id)) { seen.add(m.driver_id); result.push(m) }
+      if (!('created_at' in row) && table !== 'app_settings' && table !== 'employee_contacts' && table !== 'line_days' && table !== 'coverage_requirements') {
+        row.created_at = new Date().toISOString()
+      }
+      this.tables[table].push(row)
+      this.audit(table, 'insert', null, row)
+      out.push(clone(row))
     }
-    return result
+    this.notify(table)
+    return out
+  }
+
+  update(table: TableName, match: Row, patch: Row) {
+    for (const row of this.tables[table]) {
+      if (!matches(row, match)) continue
+      const before = clone(row)
+      Object.assign(row, patch)
+      this.audit(table, 'update', before, row)
+    }
+    this.notify(table)
+  }
+
+  upsert(table: TableName, rows: Row[]) {
+    const pk = PRIMARY_KEYS[table]
+    for (const r of rows) {
+      const existing = this.tables[table].find(x => x[pk] === r[pk])
+      if (existing) this.update(table, { [pk]: r[pk] }, r)
+      else this.insert(table, [r])
+    }
+  }
+
+  remove(table: TableName, match: Row) {
+    const keep: Row[] = []
+    for (const row of this.tables[table]) {
+      if (matches(row, match)) this.audit(table, 'delete', row, null)
+      else keep.push(row)
+    }
+    this.tables[table] = keep
+    this.notify(table)
   }
 }
 

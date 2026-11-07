@@ -1,17 +1,41 @@
-import type { Driver, Announcement, AnnouncementView, Message } from '../types'
+import type { Employee, EmployeeContact, Announcement, AnnouncementView, LineAssignment, Message } from '../types'
 
-export const DEMO_DRIVERS: Driver[] = [
-  { id: 'd1', name: 'Marcus Johnson', created_at: '2025-06-01T08:00:00Z' },
-  { id: 'd2', name: 'Sarah Chen', created_at: '2025-06-01T08:00:00Z' },
-  { id: 'd3', name: 'James Williams', created_at: '2025-06-01T08:00:00Z' },
-  { id: 'd4', name: 'Rosa Martinez', created_at: '2025-06-02T08:00:00Z' },
-  { id: 'd5', name: 'David Thompson', created_at: '2025-06-02T08:00:00Z' },
-  { id: 'd6', name: 'Linda Baker', created_at: '2025-06-03T08:00:00Z' },
-  { id: 'd7', name: 'Kevin Wright', created_at: '2025-06-03T08:00:00Z' },
-  { id: 'd8', name: 'Angela Davis', created_at: '2025-06-04T08:00:00Z' },
-  { id: 'd9', name: 'Mike Patterson', created_at: '2025-06-04T08:00:00Z' },
-  { id: 'd10', name: 'Teresa Gonzalez', created_at: '2025-06-05T08:00:00Z' },
+type DemoEmployee = Employee & { phone: string }
+const emp = (
+  id: string, name: string, role: Employee['role'], employment_type: Employee['employment_type'],
+  seniority_date: string, gurney_qualified: boolean, phone: string, hire_seq: number | null = null,
+): DemoEmployee => ({
+  id, name, role, employment_type, seniority_date, hire_seq, gurney_qualified, phone,
+  active: true, created_at: '2025-06-01T08:00:00Z',
+})
+
+// Demo PIN = last 4 digits of the phone number.
+const DEMO_EMPLOYEE_ROWS: DemoEmployee[] = [
+  emp('e-admin', 'Pat Morgan', 'admin', 'FT', '2012-01-09', false, '(530) 555-0100'),
+  emp('e-disp', 'Dana Reyes', 'dispatcher', 'FT', '2016-05-02', false, '(530) 555-0101'),
+  emp('d1', 'Marcus Johnson', 'driver', 'FT', '2015-03-02', true, '(530) 555-0111'),
+  emp('d2', 'Sarah Chen', 'driver', 'FT', '2017-06-12', false, '(530) 555-0112'),
+  emp('d3', 'James Williams', 'driver', 'FT', '2019-01-07', true, '(530) 555-0113'),
+  emp('d4', 'Rosa Martinez', 'driver', 'PT', '2018-04-09', false, '(530) 555-0114', 1),
+  emp('d5', 'David Thompson', 'driver', 'PT', '2018-04-09', true, '(530) 555-0115', 2),
+  emp('d6', 'Linda Baker', 'driver', 'PT', '2021-02-01', false, '(530) 555-0116'),
+  emp('d7', 'Kevin Wright', 'driver', 'PT', '2022-05-23', false, '(530) 555-0117'),
+  emp('d8', 'Angela Davis', 'attendant', 'FT', '2019-09-30', false, '(530) 555-0118'),
+  emp('d9', 'Mike Patterson', 'attendant', 'PT', '2023-03-13', false, '(530) 555-0119'),
+  emp('d10', 'Teresa Gonzalez', 'driver', 'PT', '2024-01-08', false, '(530) 555-0120'),
 ]
+
+export const DEMO_EMPLOYEES: Employee[] = DEMO_EMPLOYEE_ROWS.map(({ phone: _phone, ...e }) => e)
+export const DEMO_CONTACTS: EmployeeContact[] = DEMO_EMPLOYEE_ROWS.map(e => ({ employee_id: e.id, phone: e.phone }))
+
+// Some lines are held, some aren't — so the coverage view shows both green and red.
+const held: [string, string][] = [
+  ['FT1', 'd2'], ['FT3', 'd1'], ['PT1', 'd4'], ['PT2', 'd6'], ['PT4', 'd5'], ['A1', 'd8'], ['FLEX', 'd7'],
+]
+export const DEMO_ASSIGNMENTS: LineAssignment[] = held.map(([code, empId]) => ({
+  id: `la-${code}`, line_id: `line-${code}`, employee_id: empId, bid_period_id: null, source: 'manual',
+  effective_from: '2026-10-01', effective_to: null, created_by: 'e-admin', created_at: '2026-09-25T17:00:00Z',
+}))
 
 const now = Date.now()
 const hour = 3600000
@@ -79,7 +103,7 @@ export const DEMO_VIEWS: AnnouncementView[] = [
   { id: 'v16', announcement_id: 'a2', driver_id: 'd8', viewed_at: new Date(now - 2 * hour).toISOString(), acknowledged_at: null },
   { id: 'v17', announcement_id: 'a2', driver_id: 'd9', viewed_at: new Date(now - 2 * hour).toISOString(), acknowledged_at: null },
   // HIPAA — all 10 acknowledged
-  ...DEMO_DRIVERS.map((d, i) => ({
+  ...DEMO_EMPLOYEES.filter(d => d.id.startsWith('d')).map((d, i) => ({
     id: `v20-${i}`,
     announcement_id: 'a4',
     driver_id: d.id,

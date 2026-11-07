@@ -1,51 +1,13 @@
-import { useState, useEffect } from 'react'
-import { getStoredIdentity, isDispatchAuthed, clearIdentity, clearDispatchAuth } from './lib/storage'
+import { useAuth } from './lib/auth'
+import { DataProvider } from './lib/data-context'
 import { Onboarding } from './pages/Onboarding'
 import { DriverHome } from './pages/DriverHome'
 import { DispatchHome } from './pages/DispatchHome'
-import type { AppUser } from './types'
-
-type AppMode = 'loading' | 'onboarding' | 'driver' | 'dispatch'
 
 export default function App() {
-  const [mode, setMode] = useState<AppMode>('loading')
-  const [currentUser, setCurrentUser] = useState<AppUser | null>(null)
+  const { status, me, isStaff, signOut } = useAuth()
 
-  useEffect(() => {
-    if (isDispatchAuthed()) {
-      setMode('dispatch')
-      return
-    }
-    const stored = getStoredIdentity()
-    if (stored) {
-      setCurrentUser(stored)
-      setMode('driver')
-    } else {
-      setMode('onboarding')
-    }
-  }, [])
-
-  function handleOnboardingComplete(user: AppUser) {
-    setCurrentUser(user)
-    setMode('driver')
-  }
-
-  function handleDispatchMode() {
-    setMode('dispatch')
-  }
-
-  function handleDriverSignOut() {
-    clearIdentity()
-    setCurrentUser(null)
-    setMode('onboarding')
-  }
-
-  function handleDispatchSignOut() {
-    clearDispatchAuth()
-    setMode('onboarding')
-  }
-
-  if (mode === 'loading') {
+  if (status === 'loading') {
     return (
       <div className="min-h-svh bg-[#EEF1F8] flex items-center justify-center">
         <div className="w-8 h-8 border-2 border-[#CC2A2A]/30 border-t-[#CC2A2A] rounded-full animate-spin" />
@@ -53,17 +15,14 @@ export default function App() {
     )
   }
 
-  if (mode === 'onboarding') {
-    return <Onboarding onComplete={handleOnboardingComplete} onDispatchMode={handleDispatchMode} />
-  }
+  if (status === 'signed-out' || !me) return <Onboarding />
 
-  if (mode === 'driver' && currentUser) {
-    return <DriverHome driver={currentUser.driver} onSignOut={handleDriverSignOut} />
-  }
-
-  if (mode === 'dispatch') {
-    return <DispatchHome onSignOut={handleDispatchSignOut} />
-  }
-
-  return null
+  // Data loads only once someone is signed in (security rules need to know who's asking).
+  return (
+    <DataProvider key={me.id}>
+      {isStaff
+        ? <DispatchHome onSignOut={signOut} />
+        : <DriverHome driver={me} onSignOut={signOut} />}
+    </DataProvider>
+  )
 }

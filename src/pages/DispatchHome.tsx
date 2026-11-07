@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { clearDispatchAuth } from '../lib/storage'
+import { useAuth } from '../lib/auth'
 import { useData } from '../lib/data-context'
 import { Card } from '../components/ui/Card'
 import { Badge } from '../components/ui/Badge'
@@ -9,25 +9,27 @@ import { TabBar } from '../components/ui/TabBar'
 import { EmptyState } from '../components/ui/EmptyState'
 import { DispatchCompose } from './DispatchCompose'
 import { DispatchThread } from './DispatchThread'
-import { DispatchRoster } from './DispatchRoster'
-import type { Announcement, Driver } from '../types'
-import { Megaphone, MessageSquare, Users, Plus, ChevronRight, CheckCircle, Clock } from 'lucide-react'
+import { AdminHome } from './admin/AdminHome'
+import type { Announcement, Employee } from '../types'
+import { Megaphone, MessageSquare, Settings, Plus, ChevronRight, CheckCircle, Clock } from 'lucide-react'
 
 interface DispatchHomeProps {
   onSignOut: () => void
 }
 
 export function DispatchHome({ onSignOut }: DispatchHomeProps) {
-  const [tab, setTab] = useState<'announcements' | 'inbox' | 'roster'>('announcements')
+  const [tab, setTab] = useState<'announcements' | 'inbox' | 'admin'>('announcements')
   const [composing, setComposing] = useState(false)
   const [selectedAnnouncement, setSelectedAnnouncement] = useState<Announcement | null>(null)
-  const [selectedDriver, setSelectedDriver] = useState<Driver | null>(null)
+  const [selectedDriver, setSelectedDriver] = useState<Employee | null>(null)
 
   const data = useData()
-  const { announcements, views, drivers, latestMessages, unreadDispatch } = data
+  const { announcements, views, latestMessages, unreadDispatch } = data
+  const { isAdmin } = useAuth()
+  // Announcements and messages go to the crew (drivers + attendants).
+  const drivers = data.employees.filter(e => e.active && (e.role === 'driver' || e.role === 'attendant'))
 
   function handleSignOut() {
-    clearDispatchAuth()
     onSignOut()
   }
 
@@ -53,7 +55,7 @@ export function DispatchHome({ onSignOut }: DispatchHomeProps) {
   const tabs = [
     { key: 'announcements', label: 'Posts', icon: <Megaphone size={20} /> },
     { key: 'inbox', label: 'Inbox', icon: <MessageSquare size={20} />, badge: unreadDispatch },
-    { key: 'roster', label: 'Roster', icon: <Users size={20} /> },
+    ...(isAdmin ? [{ key: 'admin', label: 'Admin', icon: <Settings size={20} /> }] : []),
   ]
 
   return (
@@ -133,7 +135,7 @@ export function DispatchHome({ onSignOut }: DispatchHomeProps) {
         {tab === 'inbox' && (
           <div className="flex-1 overflow-y-auto scroll-area scrollbar-hide px-4 py-4 space-y-2">
             {drivers.length === 0 ? (
-              <EmptyState icon={<MessageSquare />} title="No drivers yet" body="Add drivers in the Roster tab." />
+              <EmptyState icon={<MessageSquare />} title="No drivers yet" body="Add drivers in Admin → Employees." />
             ) : (
               drivers.map(driver => {
                 const latest = latestMessages.find(m => m.driver_id === driver.id)
@@ -173,7 +175,7 @@ export function DispatchHome({ onSignOut }: DispatchHomeProps) {
           </div>
         )}
 
-        {tab === 'roster' && <DispatchRoster />}
+        {tab === 'admin' && isAdmin && <AdminHome />}
       </div>
 
       <TabBar tabs={tabs} active={tab} onChange={k => setTab(k as typeof tab)} />
@@ -185,7 +187,7 @@ function AckDetail({
   announcement, drivers, views, onBack,
 }: {
   announcement: Announcement
-  drivers: Driver[]
+  drivers: Employee[]
   views: { driver_id: string; viewed_at: string; acknowledged_at?: string | null }[]
   onBack: () => void
 }) {

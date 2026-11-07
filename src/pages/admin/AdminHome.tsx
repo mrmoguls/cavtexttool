@@ -1,0 +1,81 @@
+import { useMemo, useState, type ReactNode } from 'react'
+import { useData } from '../../lib/data-context'
+import { computeCoverage, todayISO } from '../../lib/scheduling'
+import { Card } from '../../components/ui/Card'
+import { ScrollBody } from '../../components/ui/Form'
+import { AdminEmployees } from './AdminEmployees'
+import { AdminBlocks } from './AdminBlocks'
+import { AdminLines } from './AdminLines'
+import { AdminCoverage } from './AdminCoverage'
+import { Users, Clock, Rows3, CalendarCheck, ChevronRight } from 'lucide-react'
+
+type Section = 'menu' | 'employees' | 'blocks' | 'lines' | 'coverage'
+
+export function AdminHome() {
+  const [section, setSection] = useState<Section>('menu')
+  const data = useData()
+
+  const shortSlots = useMemo(() => computeCoverage({
+    blocks: data.blocks, lines: data.lines, lineDays: data.lineDays, requirements: data.coverage,
+    assignments: data.assignments, employees: data.employees, asOf: todayISO(),
+  }).reduce((n, d) => n + d.cells.filter(c => c.status === 'short').length, 0),
+  [data.blocks, data.lines, data.lineDays, data.coverage, data.assignments, data.employees])
+
+  const back = () => setSection('menu')
+  if (section === 'employees') return <AdminEmployees onBack={back} />
+  if (section === 'blocks') return <AdminBlocks onBack={back} />
+  if (section === 'lines') return <AdminLines onBack={back} />
+  if (section === 'coverage') return <AdminCoverage onBack={back} />
+
+  const activeEmployees = data.employees.filter(e => e.active)
+  const missingPhone = activeEmployees.filter(e => !data.contacts.find(c => c.employee_id === e.id)?.phone.replace(/\D/g, '').slice(-4).match(/^\d{4}$/)).length
+  const openLines = data.lines.filter(l => l.active && !data.assignments.some(a => a.line_id === l.id && a.effective_from <= todayISO() && (!a.effective_to || a.effective_to >= todayISO()))).length
+
+  return (
+    <ScrollBody>
+      <MenuCard
+        icon={<CalendarCheck size={20} />}
+        title="Coverage"
+        subtitle={shortSlots === 0 ? 'Every required block is covered' : `${shortSlots} uncovered block${shortSlots === 1 ? '' : 's'} in a typical week`}
+        alert={shortSlots > 0}
+        onClick={() => setSection('coverage')}
+      />
+      <MenuCard
+        icon={<Users size={20} />}
+        title="Employees"
+        subtitle={`${activeEmployees.length} active${missingPhone ? ` · ${missingPhone} can't sign in (no phone)` : ''}`}
+        alert={missingPhone > 0}
+        onClick={() => setSection('employees')}
+      />
+      <MenuCard
+        icon={<Rows3 size={20} />}
+        title="Lines"
+        subtitle={`${data.lines.filter(l => l.active).length} active · ${openLines} without a holder`}
+        onClick={() => setSection('lines')}
+      />
+      <MenuCard
+        icon={<Clock size={20} />}
+        title="Blocks"
+        subtitle={`${data.blocks.filter(b => b.active).length} shift types`}
+        onClick={() => setSection('blocks')}
+      />
+    </ScrollBody>
+  )
+}
+
+function MenuCard({ icon, title, subtitle, alert, onClick }: {
+  icon: ReactNode; title: string; subtitle: string; alert?: boolean; onClick: () => void
+}) {
+  return (
+    <Card onClick={onClick}>
+      <div className="flex items-center gap-3">
+        <div className={`rounded-xl p-2.5 ${alert ? 'bg-[#FCE9E9] text-[#CC2A2A]' : 'bg-[#EEF1F8] text-[#1B2E6B]'}`}>{icon}</div>
+        <div className="flex-1 min-w-0">
+          <p className="font-semibold text-[#0B1A5C]">{title}</p>
+          <p className={`text-sm ${alert ? 'text-[#CC2A2A]' : 'text-[#6B7A99]'}`}>{subtitle}</p>
+        </div>
+        <ChevronRight size={18} className="text-[#6B7A99]" />
+      </div>
+    </Card>
+  )
+}

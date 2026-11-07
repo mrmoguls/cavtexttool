@@ -17,10 +17,62 @@ This is a step-by-step guide to get the app running. You don't need to know how 
 
 ## Step 2: Set up the database
 
-1. In your Supabase project, click **"SQL Editor"** in the left sidebar
-2. Click **"New query"**
-3. Open the file `supabase/schema.sql` from this project and paste its contents into the editor
-4. Click **"Run"** — you should see "Success" with no errors
+Run each file below in **Supabase → SQL Editor → New query → paste → Run**, in this order.
+Each one should finish with "Success". They're safe to run again if you're unsure.
+
+1. `supabase/schema.sql` — messages and announcements
+2. `supabase/migrations/001_employees_and_auth.sql` — employees, logins, security rules
+3. `supabase/migrations/002_scheduling_setup.sql` — blocks, lines, coverage (with starter data)
+
+> **Already running the app?** Do the same: run 001 then 002. Your existing drivers become
+> employees automatically, but **nobody can sign in until they have a phone number on file**
+> (see Step 2c). Plan to do Step 2b and 2c right after.
+
+### Step 2a: Turn off public sign-ups
+
+Supabase → **Authentication → Sign In / Providers** → turn **off** "Allow new users to sign up".
+The app creates logins itself; this stops strangers from making accounts.
+
+### Step 2b: Deploy the PIN login function
+
+People sign in by tapping their name and entering a **4-digit PIN = the last 4 digits of their
+phone number**. A small server function checks it.
+
+1. Supabase → **Edge Functions → Deploy a new function → Via editor**
+2. Name it exactly `pin-login`
+3. Paste the contents of `supabase/functions/pin-login/index.ts` and **Deploy**
+4. Open the function's **Details / Settings** and turn **off "Verify JWT"**
+   (people aren't signed in yet when they use it)
+5. Optional: under **Edge Functions → Secrets**, add `PIN_LOGIN_SECRET` with any long random text
+
+After 5 wrong PINs in a row, that person is locked out for 15 minutes.
+
+### Step 2c: Make yourself the first admin
+
+In the SQL Editor, change the name and phone below, then run it:
+
+```sql
+with me as (
+  insert into employees (name, role, employment_type, seniority_date)
+  values ('Your Name', 'admin', 'FT', current_date)
+  returning id
+)
+insert into employee_contacts (employee_id, phone)
+select id, '530-555-1234' from me;
+```
+
+If you're already in the list (from the old app), use this instead:
+
+```sql
+update employees set role = 'admin' where name = 'Your Name';
+insert into employee_contacts (employee_id, phone)
+select id, '530-555-1234' from employees where name = 'Your Name'
+on conflict (employee_id) do update set phone = excluded.phone;
+```
+
+Now sign in to the app as yourself (PIN = last 4 of that phone number) and go to
+**Admin → Employees** to add everyone else's phone number, role, FT/PT, seniority date and
+gurney qualification.
 
 ---
 
@@ -40,7 +92,6 @@ This is a step-by-step guide to get the app running. You don't need to know how 
    ```
    VITE_SUPABASE_URL=https://your-project.supabase.co
    VITE_SUPABASE_ANON_KEY=your-anon-key-here
-   VITE_DISPATCH_PIN=choose-a-pin-you-like
    ```
 3. Leave `VITE_VAPID_PUBLIC_KEY` blank for now — push notifications are a second step
 
@@ -53,7 +104,9 @@ npm install
 npm run dev
 ```
 
-Open `http://localhost:5173` — you should see the app. Add your name as a test driver in the Roster tab (dispatch PIN default is `1234` until you set yours).
+Open `http://localhost:5173` — you should see the team list. Sign in as the admin you created in Step 2c.
+
+> **No Supabase keys yet?** The app runs in **demo mode** with sample people and data. Try Pat Morgan (admin, PIN 0100), Dana Reyes (dispatch, PIN 0101), or any driver — the PIN screen shows their demo PIN. Demo changes reset when you reload.
 
 ---
 
@@ -86,21 +139,35 @@ Push notifications let the app alert drivers even when it's closed — this is w
 
 ---
 
-## Dispatch PIN
+## Who sees what
 
-The default PIN is `1234`. **Change it** before giving the URL to drivers:
-- In your `.env.local` and Netlify env vars, set `VITE_DISPATCH_PIN=yournewpin`
-- Redeploy
+| Role | Sees |
+|---|---|
+| Driver / Attendant | Announcements, their own messages, their own schedule |
+| Dispatcher | Everything above for everyone, plus Posts and Inbox |
+| Admin | Everything, plus the **Admin** tab: employees, blocks, lines, coverage |
 
-This PIN is simple — it keeps drivers from accidentally accessing dispatch features, not from a determined attacker. For a 10-person company this is fine.
+This is enforced by the database (Row Level Security), not just hidden in the app.
+
+**About the PIN:** the last 4 of a phone number is easy to remember but also easy for a coworker
+to know. The lockout limits guessing. If that ever becomes a problem, ask Claude to add
+custom PINs.
 
 ---
 
-## Adding drivers
+## Adding people
 
-1. Open the app
-2. Tap "I'm dispatch / admin" → enter PIN
-3. Go to the **Roster** tab
-4. Add each driver by name
+1. Sign in as an admin
+2. **Admin → Employees → Add employee**
+3. Enter their name, role, FT/PT, phone number, seniority date, and gurney qualification
 
-Drivers just open the URL, tap their name, and they're in. No passwords.
+They open the app, tap their name, and enter the last 4 digits of their phone number.
+To remove someone, turn off **Active** (their history is kept).
+
+---
+
+## Running the tests
+
+```bash
+npm test
+```
