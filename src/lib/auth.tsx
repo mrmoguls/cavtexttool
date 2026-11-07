@@ -5,6 +5,7 @@ import { demoStore } from './demo-store'
 import type { DirectoryEntry, Employee } from '../types'
 
 const DEMO_SESSION_KEY = 'cav_demo_employee'
+export const DEMO_PIN = '0000'
 const LEGACY_KEYS = ['cav_identity', 'cav_dispatch_auth']
 
 type Status = 'loading' | 'signed-out' | 'signed-in'
@@ -32,10 +33,6 @@ const store = {
   remove(k: string) { try { localStorage.removeItem(k) } catch { /* ignore */ } },
 }
 let demoSessionFallback: string | null = null
-
-function last4(phone: string | undefined) {
-  return (phone ?? '').replace(/\D/g, '').slice(-4)
-}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState<Status>('loading')
@@ -92,9 +89,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!/^\d{4}$/.test(pin)) return { ok: false, error: 'Enter your 4-digit PIN.' }
 
     if (isDemoMode) {
-      const contact = demoStore.select('employee_contacts').find(c => c.employee_id === employeeId) as { phone: string } | undefined
-      if (!contact || last4(contact.phone).length < 4) return { ok: false, error: 'No phone number on file yet. Ask dispatch to add it.' }
-      if (last4(contact.phone) !== pin) return { ok: false, error: 'Wrong PIN. It is the last 4 digits of your phone number.' }
+      // Demo mode keeps it simple: everyone's PIN is 0000.
+      if (pin !== DEMO_PIN) return { ok: false, error: `Wrong PIN. In demo mode everyone's PIN is ${DEMO_PIN}.` }
       demoSessionFallback = employeeId
       store.set(DEMO_SESSION_KEY, employeeId)
       await refreshMe()

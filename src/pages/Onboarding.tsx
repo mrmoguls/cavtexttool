@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react'
-import { useAuth } from '../lib/auth'
+import { useAuth, DEMO_PIN } from '../lib/auth'
 import { isStandaloneMode } from '../lib/push'
 import { isDemoMode } from '../lib/supabase'
-import { demoStore } from '../lib/demo-store'
 import { Button } from '../components/ui/Button'
 import { Logo } from '../components/ui/Logo'
 import type { DirectoryEntry } from '../types'
@@ -106,9 +105,7 @@ export function Onboarding() {
   }
 
   if (step === 'pin' && selected) {
-    const demoPin = isDemoMode
-      ? String((demoStore.select('employee_contacts').find(c => c.employee_id === selected.id) as { phone?: string } | undefined)?.phone ?? '').replace(/\D/g, '').slice(-4)
-      : null
+    const demoPin = isDemoMode ? DEMO_PIN : null
     return (
       <div className="min-h-svh bg-[#EEF1F8] flex flex-col items-center justify-center px-6 gap-6">
         <Logo size="lg" />
@@ -143,7 +140,7 @@ export function Onboarding() {
             `}
           />
           {error && <p className="text-sm text-red-600 text-center">{error}</p>}
-          {demoPin && <p className="text-xs text-[#6B7A99] text-center">Demo mode — this person's PIN is {demoPin}</p>}
+          {demoPin && <p className="text-xs text-[#6B7A99] text-center">Demo mode — everyone's PIN is {demoPin}</p>}
           <Button fullWidth onClick={() => submitPin()} disabled={busy || pin.length !== 4}>
             {busy ? 'Signing in…' : 'Sign in'}
           </Button>
@@ -165,7 +162,7 @@ export function Onboarding() {
         </p>
         {isDemoMode && (
           <p className="text-xs text-[#6B7A99] text-center max-w-xs bg-white rounded-xl px-3 py-2">
-            Demo mode: try <b>Pat Morgan</b> (admin), <b>Dana Reyes</b> (dispatch) or any driver.
+            Demo mode: everyone's PIN is <b>0000</b>. Try <b>Pat Morgan</b> (admin), <b>Dana Reyes</b> (dispatch) or any driver.
           </p>
         )}
       </div>

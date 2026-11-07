@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useData, type EmployeeDraft } from '../../lib/data-context'
 import { useAuth } from '../../lib/auth'
+import { isDemoMode } from '../../lib/supabase'
 import { bySeniority, formatDate, isActiveOn, todayISO } from '../../lib/scheduling'
 import { Card } from '../../components/ui/Card'
 import { Badge } from '../../components/ui/Badge'
@@ -146,7 +147,7 @@ function EmployeeForm({ employee, onDone }: { employee: Employee | null; onDone:
           </Field>
           <Field
             label="Phone"
-            hint={pin ? <>Sign-in PIN: <b className="text-[#0B1A5C]">{pin}</b> (last 4 digits)</> : 'Needed to sign in — the PIN is the last 4 digits.'}
+            hint={isDemoMode ? "Demo mode: everyone signs in with 0000. In the real app the PIN is the last 4 digits of this number." : pin ? <>Sign-in PIN: <b className="text-[#0B1A5C]">{pin}</b> (last 4 digits)</> : 'Needed to sign in — the PIN is the last 4 digits.'}
           >
             <TextInput type="tel" inputMode="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="(530) 555-1234" />
           </Field>
