@@ -191,9 +191,7 @@ export function Onboarding() {
               {person.name.charAt(0).toUpperCase()}
             </div>
             <span className="font-medium text-[#0B1A5C] flex-1">{person.name}</span>
-            {person.role !== 'driver' && (
-              <span className="text-[10px] font-semibold uppercase tracking-wide text-[#6B7A99]">{ROLE_LABEL[person.role]}</span>
-            )}
+            <span className="text-[10px] font-semibold uppercase tracking-wide text-[#6B7A99]">{ROLE_LABEL[person.role]}</span>
           </button>
         ))}
       </div>
