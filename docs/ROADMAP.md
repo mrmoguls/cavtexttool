@@ -40,7 +40,6 @@ One mobile-first app (PWA) that is the driver's **single starting point for work
 | Expiration tracking and alerts (synced from the sheet's Due Dates + Requirements tabs) | 2 | ✅ Built |
 | Coggno integration ("X trainings due") | 2 | ⬜ Not started |
 | "Ask a question" helper: AI answers from the Driver FAQ Google Doc; unanswered questions go to Ryan, his answer goes back to the driver and into the FAQ | 2 | ⬜ Not started — FAQ doc and tile are in place; doc being written from interviews |
-| Fuel receipt photos tagged to van | 2 | ⬜ Not started |
 | Tile tap tracking | 2 | ✅ Built (taps and people per tile, last 30 days) |
 | Native ride view | 3 | Parked |
 | Native time clock | Last / maybe never | Parked |
@@ -50,7 +49,7 @@ One mobile-first app (PWA) that is the driver's **single starting point for work
 2. **Go live (setup, no new building):** Supabase project + migrations 001–011, PIN login and sheet sync functions, Google Sheet connection, scheduled alerts, hosting on Netlify, phone notification keys. Steps in SETUP.md.
 3. **Trial (1–2 weeks):** Amber + 3–4 drivers on the live app alongside today's texting and Bambi routine.
 4. **Roll out:** sign-up session so everyone installs the app, turns on notifications and stays signed in to Bambi, BBSI and Coggno on their phone. Then stop texting start times.
-5. **Then Phase 2:** incident/accident reports with photos, "Ask a question" helper, Coggno "trainings due", fuel receipts.
+5. **Then Phase 2:** incident/accident reports with photos, "Ask a question" helper, Coggno "trainings due".
 
 ## Native features (built in the app)
 - **Scheduling:** view shifts, availability, time-off requests, shift swaps, open-shift pickup
@@ -61,7 +60,6 @@ One mobile-first app (PWA) that is the driver's **single starting point for work
 - **Incident / accident reporting** from the phone, with photos
 - **"Ask a question" helper:** a driver types a question; AI answers only from the Driver FAQ doc and shows which section it used. If the doc doesn't cover it, the question goes to Ryan (phone notification); his answer goes back to the driver and he can add it to the FAQ with one tap. Includes a list of questions asked. Question box carries a "no patient names or details" reminder. Cost: pennies per question
 - **Expiration tracking & alerts:** driver's license, CPR/first aid, background check, required trainings. Notify the driver and admins before anything lapses
-- **Fuel receipt photo upload** tagged to van (supports cost-per-van tracking)
 
 ## Linked tiles (link out, don't rebuild)
 | Tile | Purpose | Notes |
@@ -83,7 +81,7 @@ One mobile-first app (PWA) that is the driver's **single starting point for work
 
 ## Build phases
 - **Phase 1 – MVP:** login/roles, schedule + time-off + availability, announcements with acknowledgment, linked-tile home screen (admin-editable). Pre-trip inspection stays in Bambi.
-- **Phase 2:** incident reports, expiration tracking/alerts, Coggno integration (shared auth + "trainings due" card), fuel receipts, tile usage tracking
+- **Phase 2:** incident reports, expiration tracking/alerts, Coggno integration (shared auth + "trainings due" card), tile usage tracking
 - **Phase 3 (only after billing question is resolved):** consider native ride view to replace the Bambi link
 - **Last / maybe never:** native time clock. If ever built, it must meet California meal/rest break and record-keeping rules and export cleanly to whichever payroll provider is in use
 
@@ -98,7 +96,6 @@ _Note: the scheduling work (shift scheduling, shift board, line bidding) was bui
 - **Automatic texts for people without notifications** (e.g. Twilio, a few cents per text plus carrier registration), if some drivers can't or won't turn on phone notifications.
 - Payroll provider after BBSI (time clock tile target may change).
 - Exact deep-link behavior for Bambi / BBSI apps on iPhone vs Android (test both; iPhone PWA is the strictest case).
-- **Vans:** fuel receipts are tied to a van, so that feature will need a vans list (the roster deliberately leaves vans out).
 
 ## Parked ideas
 - Native ride view (replacing Bambi), see Phase 3
@@ -107,6 +104,7 @@ _Note: the scheduling work (shift scheduling, shift board, line bidding) was bui
 ## Decision log
 - **2026-11-07:** Chose "one front door" hub model: native features for what we own, linked tiles for Bambi, payroll time clock, training (Coggno), and other tools. Decided not to rebuild ride management or payroll timekeeping for now.
 - **2026-11-07:** Amber keeps entering teams in Bambi, weekly (clone a day). CAV Hub lists every change to an entered week as a Bambi update. Start times are posted the night before from the first pickup (−30 min) and drivers confirm in the app instead of by text.
+- **2026-11-08:** Dropped fuel receipt photos. Drivers keep printing the receipt and turning it in with their driver log in the shop basket.
 - **2026-11-08:** No sick-call button for drivers. Sick calls must be a call or text to the dispatch phone, so they talk to a person; dispatch records it in the app.
 - **2026-11-08:** Knowledge base = one Google Doc (Driver FAQ), linked as a tile now. The AI "Ask a question" helper will be built into CAV Hub in Phase 2 (drivers are already signed in, so questions can be routed to Ryan and answers sent back) rather than as a separate public bot.
 - **2026-11-08:** Phone notifications use free web push (no texting service). Everything in the bell, messages and announcements go to the phone; signing out stops them on that phone.
