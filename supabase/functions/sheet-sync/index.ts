@@ -1,4 +1,4 @@
-// sheet-sync — returns the Roster and Schedule tabs of the "Master Contact and Schedule" Google
+// sheet-sync — returns the Roster, Schedule, Due Dates and Requirements tabs of the "Master Contact and Schedule" Google
 // Sheet to an admin. The app shows a preview of the changes and applies them.
 //
 // Setup (once):
@@ -13,7 +13,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.49.4'
 
 const DEFAULT_SHEET_ID = '1RBSP7__bkn_D5kwlK2CnCfxekQqTR548V8hTDoMyq8A'
-const RANGES = ['Roster!A1:F300', 'Schedule!A1:N300']
+const RANGES = ['Roster!A1:F300', 'Schedule!A1:N300', "'Due Dates'!A1:K3000", 'Requirements!A1:G200']
 
 const cors = {
   'Access-Control-Allow-Origin': '*',
@@ -75,8 +75,8 @@ Deno.serve(async (req) => {
     }
     if (!res.ok) return json({ error: `Could not read the sheet (${res.status}).` }, 502)
     const body = await res.json()
-    const [roster, schedule] = (body.valueRanges ?? []).map((v: { values?: string[][] }) => v.values ?? [])
-    return json({ roster: roster ?? [], schedule: schedule ?? [] })
+    const [roster, schedule, dueDates, requirements] = (body.valueRanges ?? []).map((v: { values?: string[][] }) => v.values ?? [])
+    return json({ roster: roster ?? [], schedule: schedule ?? [], dueDates: dueDates ?? [], requirements: requirements ?? [] })
   } catch (err) {
     return json({ error: err instanceof Error ? err.message : 'Sheet sync failed.' }, 500)
   }

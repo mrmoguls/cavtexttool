@@ -42,3 +42,46 @@ describe('sheet parsing', () => {
     expect(plan.notInSheet).toEqual([])
   })
 })
+
+import { parseDueDates, parseRequirements, planCompliance } from './sheet-sync'
+import { dueStatus, drivingBlockers } from './scheduling'
+import type { ComplianceItem } from '../types'
+
+describe('certifications from the sheet', () => {
+  const rows = parseDueDates(DEMO_SHEET.dueDates)
+  it('parses Due Dates and Requirements', () => {
+    expect(rows).toHaveLength(17)
+    const david = rows.find(r => r.name === 'David Thompson' && r.requirement.startsWith('Medical'))!
+    expect(david).toMatchObject({ next_due: '2026-11-01', sheet_status: 'Overdue', notes: 'Booked at Prestige', frequency_months: 24 })
+    expect(rows.find(r => r.requirement === 'Alcohol screening')).toMatchObject({ next_due: null, last_completed: '2022-05-30', sheet_status: 'Done' })
+    const reqs = parseRequirements(DEMO_SHEET.requirements)
+    expect(reqs.find(r => r.name === 'CPR/First Aid')).toMatchObject({ frequency_months: 24, first_due_days: 90 })
+  })
+
+  it('status levels', () => {
+    const t = '2026-11-07'
+    expect(dueStatus({ next_due: '2026-11-01', sheet_status: null, last_completed: null }, t)).toMatchObject({ level: 'overdue', days: -6 })
+    expect(dueStatus({ next_due: '2026-11-12', sheet_status: null, last_completed: null }, t)).toMatchObject({ level: 'due7', label: 'Due in 5 days' })
+    expect(dueStatus({ next_due: '2026-11-30', sheet_status: null, last_completed: null }, t).level).toBe('due30')
+    expect(dueStatus({ next_due: '2026-12-20', sheet_status: null, last_completed: null }, t).level).toBe('due60')
+    expect(dueStatus({ next_due: '2027-08-01', sheet_status: null, last_completed: null }, t).level).toBe('ok')
+    expect(dueStatus({ next_due: null, sheet_status: 'Done', last_completed: '2022-05-30' }, t).level).toBe('done')
+    expect(dueStatus({ next_due: null, sheet_status: null, last_completed: null }, t).level).toBe('nodate')
+  })
+
+  it('plans upserts, deletes and unmatched names; flags expired licenses', () => {
+    const employees = [{ id: 'd5', name: 'David Thompson' }, { id: 'd2', name: 'Sarah Chen' }]
+    const old: ComplianceItem = {
+      id: 'x', employee_id: 'd5', requirement: 'Old training', last_completed: null, expiration_date: null, frequency_months: null,
+      next_due: '2026-01-01', sheet_status: null, owner: null, notes: null, synced_at: '', last_alert_level: null, last_alerted_at: null,
+      renewal_reported_at: null, renewal_note: null,
+    }
+    const plan = planCompliance(rows, employees, [old])
+    expect(plan.upserts.filter(u => u.employeeId === 'd5')).toHaveLength(2)
+    expect(plan.deletes.map(d => d.requirement)).toEqual(['Old training'])
+    expect(plan.unmatched).toContain('Marcus Johnson')
+    const items = plan.upserts.map((u, i) => ({ ...old, id: `i${i}`, employee_id: u.employeeId, requirement: u.row.requirement, next_due: u.row.next_due }))
+    expect(drivingBlockers(items, 'd5', '2026-11-07').map(i => i.requirement)).toEqual(['Medical exam card (MCSA)'])
+    expect(drivingBlockers(items, 'd2', '2026-11-07')).toEqual([]) // overdue CPR isn't a driving blocker
+  })
+})

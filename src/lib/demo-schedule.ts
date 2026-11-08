@@ -3,6 +3,10 @@
 import { DEMO_ASSIGNMENTS } from './demo-data'
 import { SEED_BLOCKS, SEED_LINE_DAYS, SEED_LINES } from './scheduling/seed'
 import { addDays, formatDate, formatTime, generateShifts, todayISO } from './scheduling'
+import { DEMO_SHEET } from './demo-sheet'
+import { DEMO_EMPLOYEES } from './demo-data'
+import { nameKey, parseDueDates, parseRequirements } from './sheet-sync'
+import type { ComplianceItem, ComplianceRequirement, TimeOffRequest } from '../types'
 import type { AppNotification, Bid, BidOptin, BidPeriod, BidPeriodLine, Shift, ShiftRequest } from '../types'
 import { pacificToInstant } from './scheduling/board'
 
@@ -102,4 +106,31 @@ export function demoBidding(): { periods: BidPeriod[]; links: BidPeriodLine[]; b
     id: `opt-${emp}`, bid_period_id: 'bp-q1', employee_id: emp, wants_full_time: ft, submitted_at: `${addDays(today, -1)}T18:00:00Z`,
   }))
   return { periods, links, bids, optins }
+}
+
+// ─── Certifications (from the made-up sheet) and a pending time-off request ──
+
+export function demoCompliance(): { items: ComplianceItem[]; requirements: ComplianceRequirement[] } {
+  const ids = new Map(DEMO_EMPLOYEES.map(e => [nameKey(e.name), e.id]))
+  const items = parseDueDates(DEMO_SHEET.dueDates).flatMap((r, i) => {
+    const id = ids.get(r.key)
+    if (!id) return []
+    return [{
+      id: `ci-${i}`, employee_id: id, requirement: r.requirement, last_completed: r.last_completed, expiration_date: r.expiration_date,
+      frequency_months: r.frequency_months, next_due: r.next_due, sheet_status: r.sheet_status, owner: r.owner, notes: r.notes,
+      synced_at: `${today}T08:00:00Z`, last_alert_level: null, last_alerted_at: null, renewal_reported_at: null, renewal_note: null,
+    } satisfies ComplianceItem]
+  })
+  return { items, requirements: parseRequirements(DEMO_SHEET.requirements) }
+}
+
+/** Linda asked for a few days off next week (short notice), waiting for dispatch. */
+export function demoTimeOff(): TimeOffRequest[] {
+  const lindaShift = demoShifts().find(s => s.employee_id === 'd6' && s.date >= addDays(today, 5) && s.status === 'scheduled')
+  const start = lindaShift?.date ?? addDays(today, 6)
+  return [{
+    id: 'to-linda', employee_id: 'd6', start_date: start, end_date: addDays(start, 1), kind: 'personal', note: 'Moving apartments',
+    status: 'pending', short_notice: true, shifts_released: null, decided_by: null, decided_at: null, decision_note: null,
+    created_at: `${today}T15:30:00Z`, updated_at: `${today}T15:30:00Z`,
+  }]
 }

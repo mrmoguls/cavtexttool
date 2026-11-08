@@ -11,7 +11,7 @@ import { DispatchCompose } from './DispatchCompose'
 import { DispatchThread } from './DispatchThread'
 import { AdminHome } from './admin/AdminHome'
 import { DispatchRoster } from './dispatch/DispatchRoster'
-import { DispatchRequests, usePendingCount } from './dispatch/DispatchRequests'
+import { DispatchRequests, usePendingCount, OpenSoonBanner } from './dispatch/DispatchRequests'
 import { Notifications, BellButton } from './Notifications'
 import { DispatchStarts, AmStartBanner, useTomorrowStarts } from './dispatch/DispatchStarts'
 import type { Announcement, Employee } from '../types'
@@ -87,6 +87,7 @@ export function DispatchHome({ onSignOut, onSwitch }: DispatchHomeProps) {
         }
       />
 
+      {tab !== 'requests' && <OpenSoonBanner onOpen={() => { setShowNotifications(false); setTab('requests') }} />}
       {tab !== 'starts' && <AmStartBanner onOpen={() => setTab('starts')} />}
 
       <div className="flex-1 overflow-hidden flex flex-col">

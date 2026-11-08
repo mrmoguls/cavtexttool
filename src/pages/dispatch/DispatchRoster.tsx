@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState } from 'react'
 import { useData } from '../../lib/data-context'
-import { addDays, buildRoster, formatDate, needsPostedStart, rosterText, shiftTimeLabel, todayISO } from '../../lib/scheduling'
+import { addDays, buildRoster, drivingBlockers, formatDate, needsPostedStart, rosterText, shiftTimeLabel, todayISO } from '../../lib/scheduling'
 import { Card } from '../../components/ui/Card'
 import { Button } from '../../components/ui/Button'
 import { EmptyState } from '../../components/ui/EmptyState'
@@ -31,6 +31,7 @@ export function DispatchRoster() {
   const uncovered = groups.reduce((n, g) => n + g.rows.filter(r => r.uncovered).length, 0)
   const text = rosterText(date, groups)
   const notGenerated = !data.generatedThrough || date > data.generatedThrough
+  const offToday = data.timeOff.filter(t => t.status === 'approved' && t.start_date <= date && t.end_date >= date)
 
   if (openShift) return <ShiftSheet shiftId={openShift} onBack={() => setOpenShift(null)} />
   if (fill) return <FillSlot date={date} block={fill.block} role={fill.role} onBack={() => setFill(null)} />
@@ -84,6 +85,10 @@ export function DispatchRoster() {
         <Warning tone="amber">Shifts haven't been generated for this date yet. Admin → Schedule → Generate shifts.</Warning>
       )}
 
+      {offToday.length > 0 && (
+        <p className="text-sm text-[#6B7A99] px-1">Off (approved time off): {offToday.map(t => data.employeesById.get(t.employee_id)?.name ?? 'Unknown').join(', ')}</p>
+      )}
+
       {groups.length === 0
         ? <EmptyState icon={<CalendarDays />} title="Nobody scheduled" body="No shifts or coverage needs for this day." />
         : groups.map(g => (
@@ -107,6 +112,9 @@ export function DispatchRoster() {
                       <p className={`text-xs ${waiting ? 'text-[#CC2A2A] font-semibold' : 'text-[#6B7A99]'}`}>{shiftTimeLabel(r.shift, g.block)}</p>
                     )}
                     {r.uncovered && <p className="text-xs text-[#A82020]">{r.shift ? 'Open shift — tap to assign' : 'Tap to fill'}</p>}
+                    {r.shift?.employee_id && r.role === 'driver' && drivingBlockers(data.complianceItems, r.shift.employee_id, today).map(i => (
+                      <p key={i.id} className="text-xs font-semibold text-[#CC2A2A]">{i.requirement} expired</p>
+                    ))}
                   </div>
                   <ChevronRight size={16} className="text-[#6B7A99] no-print" />
                 </button>

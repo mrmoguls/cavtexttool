@@ -12,6 +12,10 @@ import type { Employee, Shift } from '../../types'
 import { CalendarDays, ChevronLeft, ChevronRight, Clock } from 'lucide-react'
 import { ShiftActions } from './ShiftActions'
 import { BidBanner, DriverBid } from './DriverBid'
+import { CertificationsCard, MyCertifications } from './MyCertifications'
+import { TimeOff, rangeText } from './TimeOff'
+import { Button } from '../../components/ui/Button'
+import { Plane } from 'lucide-react'
 import type { BidPeriod } from '../../types'
 import { StatusPill } from '../../components/schedule/ShiftBits'
 import { isActive, REQUEST_STATUS_LABEL } from '../../lib/scheduling'
@@ -31,6 +35,7 @@ export function DriverSchedule({ driver, onMessageDispatch }: { driver: Employee
   const [weekStart, setWeekStart] = useState(() => mondayOf(today))
   const [open, setOpen] = useState<Shift | null>(null)
   const [bidding, setBidding] = useState<BidPeriod | null>(null)
+  const [sub, setSub] = useState<'certs' | 'timeoff' | null>(null)
 
   const mine = useMemo(
     () => data.shifts
@@ -38,6 +43,9 @@ export function DriverSchedule({ driver, onMessageDispatch }: { driver: Employee
       .sort((a, b) => a.date.localeCompare(b.date) || (a.start_time ?? '').localeCompare(b.start_time ?? '')),
     [data.shifts, driver.id],
   )
+
+  if (sub === 'certs') return <MyCertifications driver={driver} onBack={() => setSub(null)} />
+  if (sub === 'timeoff') return <TimeOff driver={driver} onBack={() => setSub(null)} />
 
   if (bidding) {
     const fresh = data.bidPeriods.find(p => p.id === bidding.id) ?? bidding
@@ -57,6 +65,9 @@ export function DriverSchedule({ driver, onMessageDispatch }: { driver: Employee
   const line = assignment ? data.lines.find(l => l.id === assignment.line_id) : undefined
   const lineDays = line ? data.lineDays.filter(d => d.line_id === line.id) : []
 
+  const upcomingTimeOff = data.timeOff
+    .filter(t => t.employee_id === driver.id && (t.status === 'approved' || t.status === 'pending') && t.end_date >= today)
+    .sort((a, b) => a.start_date.localeCompare(b.start_date))
   const upcoming = mine.filter(s => s.date >= today && s.date <= addDays(today, LOOKAHEAD_DAYS - 1))
   const weeks = new Map<string, Shift[]>()
   for (const s of upcoming) {
@@ -67,6 +78,7 @@ export function DriverSchedule({ driver, onMessageDispatch }: { driver: Employee
   return (
     <ScrollBody>
       <BidBanner driver={driver} onOpen={setBidding} />
+      <CertificationsCard driver={driver} onOpen={() => setSub('certs')} />
       <Card>
         <p className="text-xs font-semibold text-[#6B7A99] uppercase tracking-wide">Your line</p>
         {line ? (
@@ -86,6 +98,13 @@ export function DriverSchedule({ driver, onMessageDispatch }: { driver: Employee
           <p className="text-sm text-[#1B2E6B] mt-2">From {formatDate(nextAssignment.effective_from)}: <b>{nextLine.code}</b> · {lineSummary(nextLine, data.lineDays.filter(d => d.line_id === nextLine.id), data.blocksById)}</p>
         )}
       </Card>
+
+      <Button fullWidth variant="secondary" onClick={() => setSub('timeoff')}><Plane size={16} /> Request time off</Button>
+      {upcomingTimeOff.map(t => (
+        <div key={t.id} className={`rounded-xl px-3 py-2 text-sm ${t.status === 'approved' ? 'bg-[#E8F5EE] text-[#2E7D52]' : 'bg-amber-50 text-amber-900'}`}>
+          Time off {rangeText(t)} · {t.status === 'approved' ? 'approved' : 'waiting for dispatch'}
+        </div>
+      ))}
 
       <Segmented value={view} options={[{ value: 'list', label: 'List' }, { value: 'week', label: 'Week' }]} onChange={setView} />
 

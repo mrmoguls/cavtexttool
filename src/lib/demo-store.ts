@@ -1,6 +1,6 @@
 // In-memory stand-in for Supabase when no keys are configured (demo mode).
 // Holds every table as a plain array and mimics insert/update/delete + realtime + the audit trigger.
-import { demoShifts, demoNotifications, demoRequests, demoBidding, DEMO_GENERATED_THROUGH } from './demo-schedule'
+import { demoShifts, demoNotifications, demoRequests, demoBidding, demoCompliance, demoTimeOff, DEMO_GENERATED_THROUGH } from './demo-schedule'
 import { DEMO_ANNOUNCEMENTS, DEMO_ASSIGNMENTS, DEMO_CONTACTS, DEMO_EMPLOYEES, DEMO_MESSAGES, DEMO_VIEWS } from './demo-data'
 import { SEED_BLOCKS, SEED_COVERAGE, SEED_LINE_DAYS, SEED_LINES, SEED_SETTINGS } from './scheduling/seed'
 import type { AuditEntry } from '../types'
@@ -35,6 +35,9 @@ function initialTables(): Record<TableName, Row[]> {
     bid_optins: demoBidding().optins as unknown as Row[],
     bids: demoBidding().bids as unknown as Row[],
     bid_results: [],
+    compliance_requirements: demoCompliance().requirements as unknown as Row[],
+    compliance_items: demoCompliance().items as unknown as Row[],
+    time_off_requests: demoTimeOff() as unknown as Row[],
   }
 }
 

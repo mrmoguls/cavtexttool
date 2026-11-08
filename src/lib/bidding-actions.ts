@@ -199,7 +199,8 @@ export async function publishPeriod(id: string, by: string | null) {
   // Shifts for the whole period (from today if it has already started).
   const from = p.start_date > todayISO() ? p.start_date : todayISO()
   const allLines = await db.select<Line>('lines')
-  const drafts = generateShifts({ assignments: created, lines: allLines, lineDays, blocks, existing: [], from, to: p.end_date, createdBy: by })
+  const timeOff = await db.select<{ employee_id: string; start_date: string; end_date: string }>('time_off_requests', { eq: { status: 'approved' } })
+  const drafts = generateShifts({ assignments: created, lines: allLines, lineDays, blocks, existing: [], from, to: p.end_date, createdBy: by, timeOff })
   await db.insert('shifts', drafts as unknown as Record<string, unknown>[])
   const through = settings.find(s => s.key === 'shifts_generated_through')?.value
   if (typeof through !== 'string' || through < p.end_date) {

@@ -271,3 +271,52 @@ export interface BidResult {
   note: string | null
   created_at: string
 }
+
+// ─── Certifications (expiration tracking) and time off ───────────────────────
+
+export interface ComplianceRequirement {
+  name: string
+  applies_to: string | null
+  frequency_months: number | null
+  first_due_days: number | null
+  how_to: string | null
+  basis: string | null
+  synced_at?: string
+}
+
+export interface ComplianceItem {
+  id: string
+  employee_id: string
+  requirement: string
+  last_completed: string | null
+  expiration_date: string | null
+  frequency_months: number | null
+  next_due: string | null
+  sheet_status: string | null
+  owner: string | null
+  notes: string | null
+  synced_at: string
+  last_alert_level: '60' | '30' | '7' | 'overdue' | null
+  last_alerted_at: string | null
+  renewal_reported_at: string | null
+  renewal_note: string | null
+}
+
+export type TimeOffKind = 'vacation' | 'personal' | 'medical' | 'other'
+
+export interface TimeOffRequest {
+  id: string
+  employee_id: string
+  start_date: string
+  end_date: string
+  kind: TimeOffKind
+  note: string | null
+  status: 'pending' | 'approved' | 'denied' | 'cancelled'
+  short_notice: boolean
+  shifts_released: number | null
+  decided_by: string | null
+  decided_at: string | null
+  decision_note: string | null
+  created_at: string
+  updated_at: string
+}

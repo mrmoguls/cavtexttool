@@ -26,12 +26,13 @@ One mobile-first app (PWA) that is the driver's **single starting point for work
 | Line bidding by seniority; seniority from the Google Sheet (Roster tab) | 1 | ✅ Built |
 | Daily roster for Bambi, AM start-time posting | 1 | ✅ Built |
 | Open shifts to current staff wanting more hours **before new hires** | 1 | 🟡 Partly: a "part-time first" window exists; no "wants more hours" flag yet |
+| Dispatch alert when an open shift has no taker within 24 hours | 1 | ✅ Built (banner + daily notification) |
 | Assignment considers **hours available** | 1 | 🟡 Partly: availability days and seniority are used; weekly hour caps (e.g. "no more than 20 hrs") are only in free-text notes |
-| **Time-off requests** | 1 | ⬜ Not started |
+| Time-off requests (short notice flagged; approved days become open shifts) | 1 | ✅ Built |
 | **Linked-tile home screen** (admin-editable) + links on the shift card | 1 | ⬜ Not started |
-| **Pre-trip vehicle inspection** with photos | 1 | ⬜ Not started (needs a vans list and photo storage) |
+| Pre-trip vehicle inspection | 1 | ✅ Handled in **Bambi** — link out, don't rebuild |
 | Incident / accident reports with photos | 2 | ⬜ Not started |
-| Expiration tracking and alerts | 2 | ⬜ Not started — the sheet's **Requirements** and **Compliance Checklist** tabs already hold this data |
+| Expiration tracking and alerts (synced from the sheet's Due Dates + Requirements tabs) | 2 | ✅ Built |
 | Pathway integration ("X trainings due") | 2 | ⬜ Not started |
 | Fuel receipt photos tagged to van | 2 | ⬜ Not started |
 | Tile tap tracking | 2 | ⬜ Not started |
@@ -43,7 +44,7 @@ One mobile-first app (PWA) that is the driver's **single starting point for work
   - Open shifts are offered to **current staff wanting more hours before new hires**
   - Future assignment logic should consider hours available, availability, and seniority
 - **Announcements** with required **"I've read this"** acknowledgment (proof of receipt for policy changes and handbook sign-off)
-- **Pre-trip vehicle inspection** checklist with photos, dated and tied to van and driver (Title 22 / VSSI audit evidence)
+- ~~**Pre-trip vehicle inspection**~~ — done in Bambi; add it as a linked tile / shift-card link instead
 - **Incident / accident reporting** from the phone, with photos
 - **Expiration tracking & alerts:** driver's license, CPR/first aid, background check, required trainings. Notify the driver and admins before anything lapses
 - **Fuel receipt photo upload** tagged to van (supports cost-per-van tracking)
@@ -66,7 +67,7 @@ One mobile-first app (PWA) that is the driver's **single starting point for work
 **Logins:** links don't sign drivers in to other apps. During onboarding, make sure each linked app stays signed in on the driver's phone.
 
 ## Build phases
-- **Phase 1 – MVP:** login/roles, schedule + time-off + availability, announcements with acknowledgment, pre-trip inspection, linked-tile home screen (admin-editable)
+- **Phase 1 – MVP:** login/roles, schedule + time-off + availability, announcements with acknowledgment, linked-tile home screen (admin-editable). Pre-trip inspection stays in Bambi.
 - **Phase 2:** incident reports, expiration tracking/alerts, Pathway integration (shared auth + "trainings due" card), fuel receipts, tile usage tracking
 - **Phase 3 (only after billing question is resolved):** consider native ride view to replace the Bambi link
 - **Last / maybe never:** native time clock. If ever built, it must meet California meal/rest break and record-keeping rules and export cleanly to whichever payroll provider is in use
@@ -79,7 +80,7 @@ _Note: the scheduling work (shift scheduling, shift board, line bidding) was bui
   - The in-app **messages** and shift-board **notes** are free text. Drivers could type patient details there by habit. Consider a short "no patient names or details" reminder on those boxes.
 - Payroll provider after BBSI (time clock tile target may change).
 - Exact deep-link behavior for Bambi / BBSI apps on iPhone vs Android (test both; iPhone PWA is the strictest case).
-- **Vans:** pre-trip inspections and fuel receipts are tied to a van, so the app will need a vans list (earlier, the roster deliberately left vans out).
+- **Vans:** fuel receipts are tied to a van, so that feature will need a vans list (the roster deliberately leaves vans out).
 
 ## Parked ideas
 - Native ride view (replacing Bambi), see Phase 3
@@ -87,4 +88,7 @@ _Note: the scheduling work (shift scheduling, shift board, line bidding) was bui
 
 ## Decision log
 - **2026-11-07:** Chose "one front door" hub model: native features for what we own, linked tiles for Bambi, payroll time clock, Pathway, and other tools. Decided not to rebuild ride management or payroll timekeeping for now.
+- **2026-11-07:** Pre-trip inspections stay in Bambi (already in use there); the app links to it instead of rebuilding.
+- **2026-11-07:** Expiration tracking uses the sheet's Due Dates tab as the source of truth (synced, read-only in the app). Reminders at 60 / 30 / 7 days and weekly once overdue; drivers report renewals in the app, admins update the sheet.
+- **2026-11-07:** Time off: requested in the app, approved by dispatch; under 14 days' notice is flagged, not blocked; approved days' shifts become open shifts automatically.
 - **2026-11-07:** Scheduling built: line bidding by seniority, shift board with dispatch approval and overtime warnings, daily roster for Bambi. The "Master Contact and Schedule" Google Sheet is the source of truth for seniority, role, FT/PT, phone and availability (synced into the app, read-only there).

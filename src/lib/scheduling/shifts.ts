@@ -40,6 +40,8 @@ export interface GenerateInput {
   from: string
   to: string
   createdBy?: string | null
+  /** Approved time off: no shifts are generated for these people on these days. */
+  timeOff?: { employee_id: string; start_date: string; end_date: string }[]
 }
 
 /**
@@ -64,6 +66,7 @@ export function generateShifts(input: GenerateInput): ShiftDraft[] {
       const block = blocks.get(ld.block_id)
       if (!block || !block.active) continue
       if (done.has(`${a.id}|${date}`)) continue
+      if (input.timeOff?.some(t => t.employee_id === a.employee_id && t.start_date <= date && t.end_date >= date)) continue
       out.push({
         date,
         block_id: block.id,

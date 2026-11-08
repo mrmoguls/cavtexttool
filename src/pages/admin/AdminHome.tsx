@@ -1,6 +1,6 @@
 import { useMemo, useState, type ReactNode } from 'react'
 import { useData } from '../../lib/data-context'
-import { computeCoverage, formatDate, todayISO } from '../../lib/scheduling'
+import { computeCoverage, dueStatus, formatDate, todayISO } from '../../lib/scheduling'
 import { Card } from '../../components/ui/Card'
 import { ScrollBody } from '../../components/ui/Form'
 import { AdminEmployees } from './AdminEmployees'
@@ -9,9 +9,10 @@ import { AdminLines } from './AdminLines'
 import { AdminCoverage } from './AdminCoverage'
 import { AdminSchedule } from './AdminSchedule'
 import { AdminBidding } from './AdminBidding'
-import { Users, Clock, Rows3, CalendarCheck, ChevronRight, CalendarRange, Gavel } from 'lucide-react'
+import { AdminCertifications } from './AdminCertifications'
+import { Users, Clock, Rows3, CalendarCheck, ChevronRight, CalendarRange, Gavel, BadgeCheck } from 'lucide-react'
 
-type Section = 'menu' | 'employees' | 'blocks' | 'lines' | 'coverage' | 'schedule' | 'bidding'
+type Section = 'menu' | 'employees' | 'blocks' | 'lines' | 'coverage' | 'schedule' | 'bidding' | 'certs'
 
 export function AdminHome() {
   const [section, setSection] = useState<Section>('menu')
@@ -29,6 +30,7 @@ export function AdminHome() {
   if (section === 'coverage') return <AdminCoverage onBack={back} />
   if (section === 'schedule') return <AdminSchedule onBack={back} />
   if (section === 'bidding') return <AdminBidding onBack={back} />
+  if (section === 'certs') return <AdminCertifications onBack={back} />
   if (section === 'lines') return <AdminLines onBack={back} onOffer={() => setSection('bidding')} />
 
   const activeEmployees = data.employees.filter(e => e.active)
@@ -37,6 +39,22 @@ export function AdminHome() {
 
   return (
     <ScrollBody>
+      {(() => {
+        const t = todayISO()
+        const activeIds = new Set(data.employees.filter(e => e.active).map(e => e.id))
+        const its = data.complianceItems.filter(i => activeIds.has(i.employee_id))
+        const overdue = its.filter(i => dueStatus(i, t).level === 'overdue').length
+        const soon = its.filter(i => ['due7', 'due30'].includes(dueStatus(i, t).level)).length
+        return (
+          <MenuCard
+            icon={<BadgeCheck size={20} />}
+            title="Certifications"
+            subtitle={its.length === 0 ? 'Sync the Due Dates tab from the sheet' : overdue || soon ? `${overdue} overdue · ${soon} due within 30 days` : 'Everything current'}
+            alert={overdue > 0}
+            onClick={() => setSection('certs')}
+          />
+        )
+      })()}
       <MenuCard
         icon={<CalendarCheck size={20} />}
         title="Coverage"

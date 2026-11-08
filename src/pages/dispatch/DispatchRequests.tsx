@@ -8,13 +8,15 @@ import { EmptyState } from '../../components/ui/EmptyState'
 import { ScrollBody, SectionLabel, TextArea, Field, Warning } from '../../components/ui/Form'
 import { ShiftLine, StatusPill } from '../../components/schedule/ShiftBits'
 import { AssignPicker } from '../../components/schedule/AssignPicker'
-import type { Shift, ShiftRequest } from '../../types'
+import type { Shift, ShiftRequest, TimeOffRequest } from '../../types'
+import { KIND_LABEL, rangeText } from '../driver/TimeOff'
 import { Inbox, Thermometer, ArrowRight } from 'lucide-react'
 
 /** Requests waiting on dispatch (for the tab badge). */
 export function usePendingCount() {
   const data = useData()
-  return data.requests.filter(r => r.status === 'pending' || (r.type === 'giveup' && r.status === 'posted')).length
+  return data.requests.filter(r => r.status === 'pending' || (r.type === 'giveup' && r.status === 'posted')).length +
+    data.timeOff.filter(t => t.status === 'pending').length
 }
 
 function cutoffHours(settings: Record<string, unknown>) {
@@ -44,7 +46,8 @@ export function DispatchRequests() {
     .filter(r => r.type === 'callout' && r.created_at >= `${addDays(today, -2)}`)
     .sort((a, b) => b.created_at.localeCompare(a.created_at))
 
-  const nothing = !pending.length && !posted.length && !waitingPartner.length && !open.length && !sick.length
+  const timeOff = data.timeOff.filter(t => t.status === 'pending').sort((a, b) => a.start_date.localeCompare(b.start_date))
+  const nothing = !pending.length && !posted.length && !waitingPartner.length && !open.length && !sick.length && !timeOff.length
 
   return (
     <ScrollBody>
@@ -68,6 +71,13 @@ export function DispatchRequests() {
               </Card>
             )
           })}
+        </div>
+      )}
+
+      {timeOff.length > 0 && (
+        <div className="space-y-2">
+          <SectionLabel>Time off requests</SectionLabel>
+          {timeOff.map(t => <TimeOffCard key={t.id} request={t} />)}
         </div>
       )}
 
@@ -225,3 +235,85 @@ function OpenShift({ shift, requests }: { shift: Shift; requests: number }) {
   )
 }
 
+
+function TimeOffCard({ request: t }: { request: TimeOffRequest }) {
+  const data = useData()
+  const { me } = useAuth()
+  const [mode, setMode] = useState<'idle' | 'approve' | 'deny'>('idle')
+  const [note, setNote] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const who = data.employeesById.get(t.employee_id)?.name ?? 'Unknown'
+  const affected = data.shifts
+    .filter(s => s.employee_id === t.employee_id && s.status === 'scheduled' && s.date >= t.start_date && s.date <= t.end_date)
+    .sort((a, b) => a.date.localeCompare(b.date))
+
+  async function decide(approve: boolean) {
+    setBusy(true); setError(null)
+    try { await data.decideTimeOff(t.id, approve, { by: me?.id ?? null, note: note.trim() || null }) }
+    catch (err) { setError(err instanceof Error ? err.message : 'Something went wrong.') }
+    finally { setBusy(false) }
+  }
+
+  return (
+    <Card className="space-y-3">
+      <div className="flex items-start justify-between gap-2">
+        <div>
+          <p className="font-semibold text-[#0B1A5C]">{who}: {rangeText(t)}</p>
+          <p className="text-xs text-[#6B7A99]">{KIND_LABEL[t.kind]}{t.note ? ` · "${t.note}"` : ''}</p>
+        </div>
+        {t.short_notice && <StatusPill tone="red">Short notice</StatusPill>}
+      </div>
+      {affected.length === 0
+        ? <p className="text-sm text-[#6B7A99]">Not scheduled on those days.</p>
+        : (
+          <div className="space-y-2">
+            <p className="text-xs font-semibold text-[#6B7A99] uppercase">If approved, {affected.length === 1 ? 'this becomes an open shift' : `these ${affected.length} become open shifts`}</p>
+            {affected.map(s => <ShiftLine key={s.id} shift={s} />)}
+          </div>
+        )}
+      {mode !== 'idle' && (
+        <Field label={mode === 'deny' ? 'Reason (sent to the driver)' : 'Note to the driver (optional)'}>
+          <TextArea value={note} onChange={e => setNote(e.target.value)} />
+        </Field>
+      )}
+      {error && <Warning>{error}</Warning>}
+      {mode === 'idle' ? (
+        <div className="flex gap-2">
+          <Button className="flex-1" onClick={() => setMode('approve')}>Approve</Button>
+          <Button variant="secondary" onClick={() => setMode('deny')}>Deny</Button>
+        </div>
+      ) : (
+        <div className="flex gap-2">
+          <Button className="flex-1" variant={mode === 'deny' ? 'danger' : 'primary'} disabled={busy} onClick={() => decide(mode === 'approve')}>
+            {busy ? 'Saving…' : mode === 'deny' ? 'Deny time off' : affected.length ? `Approve and open ${affected.length} shift${affected.length === 1 ? '' : 's'}` : 'Approve'}
+          </Button>
+          <Button variant="secondary" onClick={() => { setMode('idle'); setError(null) }}>Back</Button>
+        </div>
+      )}
+    </Card>
+  )
+}
+
+/** Open shifts starting in the next 24 hours with nobody on them. */
+export function useOpenSoon() {
+  const data = useData()
+  return data.shifts.filter(s => {
+    if (s.status !== 'open' || s.employee_id) return false
+    const b = data.blocksById.get(s.block_id)
+    if (!b) return false
+    const h = hoursUntilStart(s, b)
+    return h >= -2 && h <= 24
+  })
+}
+
+export function OpenSoonBanner({ onOpen }: { onOpen: () => void }) {
+  const soon = useOpenSoon()
+  if (!soon.length) return null
+  return (
+    <button onClick={onOpen} className="no-print w-full text-left px-4 py-2.5 text-sm font-medium flex items-center gap-2 bg-[#CC2A2A] text-white">
+      <span className="flex-1">{soon.length} open shift{soon.length === 1 ? '' : 's'} starting within 24 hours with nobody assigned</span>
+      <span className="underline underline-offset-2">Assign</span>
+    </button>
+  )
+}

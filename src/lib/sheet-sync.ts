@@ -1,11 +1,15 @@
 // Reads the "Master Contact and Schedule" Google Sheet (Roster + Schedule tabs) and works out
 // what to change in the app. The sheet is the source of truth for seniority, role, FT/PT,
 // active status, phone and availability. Gurney qualification stays in the app.
-import type { Availability, Employee, EmployeeContact, EmployeeRole, EmploymentType } from '../types'
+import type { Availability, ComplianceItem, ComplianceRequirement, Employee, EmployeeContact, EmployeeRole, EmploymentType } from '../types'
 
 export interface SheetValues {
   roster: string[][]
   schedule: string[][]
+  /** "Due Dates" tab: one row per person per requirement. */
+  dueDates?: string[][]
+  /** "Requirements" tab: what each requirement is and how to renew it. */
+  requirements?: string[][]
 }
 
 export interface SheetPerson {
@@ -222,5 +226,93 @@ export function planSync(parsed: { people: SheetPerson[]; skipped: SkippedRow[] 
     else plan.unchanged.push(p)
   }
   plan.notInSheet = employees.filter(e => e.active && !matched.has(e.id))
+  return plan
+}
+
+// ─── Certifications: Due Dates + Requirements tabs ───────────────────────────
+
+export interface DueRow {
+  name: string
+  key: string
+  requirement: string
+  last_completed: string | null
+  expiration_date: string | null
+  frequency_months: number | null
+  next_due: string | null
+  sheet_status: string | null
+  owner: string | null
+  notes: string | null
+}
+
+const intOrNull = (v: string | undefined) => {
+  const n = Number((v ?? '').trim())
+  return (v ?? '').trim() !== '' && Number.isFinite(n) ? Math.round(n) : null
+}
+const textOrNull = (v: string | undefined) => (v ?? '').trim() || null
+
+export function parseDueDates(values: string[][] | undefined): DueRow[] {
+  if (!values?.length) return []
+  const [head, ...rows] = values
+  const col = (n: string) => headerIndex(head, n)
+  const c = {
+    person: col('Person'), req: col('Requirement'), last: col('Last completed'), exp: col('Expiration date'),
+    freq: col('Frequency (months)'), next: col('Next due'), status: col('Status'), owner: col('Owner'), notes: col('Notes'),
+  }
+  if (c.person < 0 || c.req < 0 || c.next < 0) throw new Error('The Due Dates tab needs Person, Requirement and Next due columns.')
+  return rows
+    .filter(r => (r[c.person] ?? '').trim() && (r[c.req] ?? '').trim())
+    .map(r => {
+      const name = cleanName(r[c.person])
+      return {
+        name, key: nameKey(name), requirement: r[c.req].trim(),
+        last_completed: c.last >= 0 ? parseUsDate(r[c.last]) : null,
+        expiration_date: c.exp >= 0 ? parseUsDate(r[c.exp]) : null,
+        frequency_months: c.freq >= 0 ? intOrNull(r[c.freq]) : null,
+        next_due: parseUsDate(r[c.next]),
+        sheet_status: c.status >= 0 ? textOrNull(r[c.status]) : null,
+        owner: c.owner >= 0 ? textOrNull(r[c.owner]) : null,
+        notes: c.notes >= 0 ? textOrNull(r[c.notes]) : null,
+      }
+    })
+}
+
+export function parseRequirements(values: string[][] | undefined): ComplianceRequirement[] {
+  if (!values?.length) return []
+  const [head, ...rows] = values
+  const col = (n: string) => headerIndex(head, n)
+  const c = { name: col('Requirement'), applies: col('Applies to'), freq: col('Frequency (months)'), first: col('First due (days after hire)'), how: col("How it's done"), basis: col('Basis') }
+  if (c.name < 0) return []
+  return rows.filter(r => (r[c.name] ?? '').trim()).map(r => ({
+    name: r[c.name].trim(),
+    applies_to: c.applies >= 0 ? textOrNull(r[c.applies]) : null,
+    frequency_months: c.freq >= 0 ? intOrNull(r[c.freq]) : null,
+    first_due_days: c.first >= 0 ? intOrNull(r[c.first]) : null,
+    how_to: c.how >= 0 ? textOrNull(r[c.how]) : null,
+    basis: c.basis >= 0 ? textOrNull(r[c.basis]) : null,
+  }))
+}
+
+export interface CompliancePlan {
+  upserts: { employeeId: string; row: DueRow; existing?: ComplianceItem; dueChanged: boolean }[]
+  /** Items for people in the Due Dates tab whose requirement row is gone from the sheet. */
+  deletes: ComplianceItem[]
+  /** Names in the Due Dates tab that don't match anyone in the app. */
+  unmatched: string[]
+}
+
+export function planCompliance(rows: DueRow[], employees: Pick<Employee, 'id' | 'name'>[], existing: ComplianceItem[]): CompliancePlan {
+  const byKey = new Map(employees.map(e => [nameKey(e.name), e.id]))
+  const plan: CompliancePlan = { upserts: [], deletes: [], unmatched: [] }
+  const seen = new Set<string>()
+  const peopleInSheet = new Set<string>()
+  for (const row of rows) {
+    const id = byKey.get(row.key)
+    if (!id) { if (!plan.unmatched.includes(row.name)) plan.unmatched.push(row.name); continue }
+    peopleInSheet.add(id)
+    seen.add(`${id}|${row.requirement}`)
+    const ex = existing.find(i => i.employee_id === id && i.requirement === row.requirement)
+    plan.upserts.push({ employeeId: id, row, existing: ex, dueChanged: (ex?.next_due ?? null) !== row.next_due })
+  }
+  plan.deletes = existing.filter(i => peopleInSheet.has(i.employee_id) && !seen.has(`${i.employee_id}|${i.requirement}`))
   return plan
 }

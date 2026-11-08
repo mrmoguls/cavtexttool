@@ -3,7 +3,8 @@ import { useData, type EmployeeDraft } from '../../lib/data-context'
 import { useAuth } from '../../lib/auth'
 import { isDemoMode } from '../../lib/supabase'
 import { bySeniority, DISPLAY_WEEK, DOW_SHORT, formatDate, isActiveOn, todayISO } from '../../lib/scheduling'
-import { parseSheet, planSync, type SyncPlan } from '../../lib/sheet-sync'
+import { nameKey, parseDueDates, parseSheet, planSync, type SheetValues, type SyncPlan } from '../../lib/sheet-sync'
+import { dueStatus } from '../../lib/scheduling'
 import { Card } from '../../components/ui/Card'
 import { Badge } from '../../components/ui/Badge'
 import { Button } from '../../components/ui/Button'
@@ -241,6 +242,7 @@ export function AvailabilityStrip({ availability }: { availability: Availability
 function SheetSync({ onBack }: { onBack: () => void }) {
   const data = useData()
   const [plan, setPlan] = useState<SyncPlan | null>(null)
+  const [values, setValues] = useState<SheetValues | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [done, setDone] = useState<string | null>(null)
@@ -248,24 +250,34 @@ function SheetSync({ onBack }: { onBack: () => void }) {
   async function preview() {
     setBusy(true); setError(null); setDone(null)
     try {
-      const values = await data.fetchSheet()
-      setPlan(planSync(parseSheet(values), data.employees, data.contacts))
+      const v = await data.fetchSheet()
+      setValues(v)
+      setPlan(planSync(parseSheet(v), data.employees, data.contacts))
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not read the sheet.')
     } finally { setBusy(false) }
   }
 
   async function apply() {
-    if (!plan) return
+    if (!plan || !values) return
     setBusy(true); setError(null)
     try {
-      await data.applySync(plan)
-      setDone(`Synced: ${plan.creates.length} added, ${plan.updates.length} updated, ${plan.unchanged.length} unchanged.`)
+      const c = await data.applySync(plan, values)
+      setDone(`Synced: ${plan.creates.length} added, ${plan.updates.length} updated, ${plan.unchanged.length} unchanged. Certifications: ${c.upserts} items${c.unmatched.length ? `; ${c.unmatched.length} name${c.unmatched.length === 1 ? '' : 's'} on the Due Dates tab didn't match anyone (${c.unmatched.join(', ')})` : ''}.`)
       setPlan(null)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Sync failed.')
     } finally { setBusy(false) }
   }
+
+  // Certifications preview (Due Dates tab), matched against people in the app or about to be added.
+  const due = values ? parseDueDates(values.dueDates) : []
+  const known = new Set([...data.employees.map(e => nameKey(e.name)), ...(plan?.creates.map(p => p.key) ?? [])])
+  const dueMatched = due.filter(r => known.has(r.key))
+  const dueUnmatched = [...new Set(due.filter(r => !known.has(r.key)).map(r => r.name))]
+  const today = todayISO()
+  const dueOverdue = dueMatched.filter(r => dueStatus({ ...r }, today).level === 'overdue').length
+  const dueSoon = dueMatched.filter(r => ['due7', 'due30', 'due60'].includes(dueStatus({ ...r }, today).level)).length
 
   const issues = plan ? [...plan.creates, ...plan.updates.map(u => u.person), ...plan.unchanged].filter(p => p.issues.length) : []
 
@@ -275,7 +287,8 @@ function SheetSync({ onBack }: { onBack: () => void }) {
       <ScrollBody>
         <Card className="space-y-2">
           <p className="text-sm text-[#1B2E6B]">
-            Reads the <b>Roster</b> tab (start date = seniority, role, status) and the <b>Schedule</b> tab (phone, days available, notes).
+            Reads the <b>Roster</b> tab (start date = seniority, role, status), the <b>Schedule</b> tab (phone, days available, notes),
+            and the <b>Due Dates</b> and <b>Requirements</b> tabs (certifications and how to renew them).
             You'll see what changes before anything is saved.
           </p>
           <p className="text-xs text-[#6B7A99]">
@@ -322,14 +335,23 @@ function SheetSync({ onBack }: { onBack: () => void }) {
                 {plan.skipped.map(s => <p key={s.name} className="text-xs text-[#1B2E6B]"><b>{s.name}:</b> {s.reason}</p>)}
               </Card>
             )}
+            {due.length > 0 && (
+              <Card className="space-y-1">
+                <p className="text-xs font-semibold text-[#6B7A99] uppercase tracking-wide">Certifications (Due Dates tab)</p>
+                <p className="text-sm text-[#1B2E6B]">{dueMatched.length} items · <b className="text-[#CC2A2A]">{dueOverdue} overdue</b> · {dueSoon} due within 60 days</p>
+                {dueUnmatched.length > 0 && <p className="text-xs text-[#A82020]">Not matched to anyone (check spelling): {dueUnmatched.join(', ')}</p>}
+              </Card>
+            )}
             {plan.notInSheet.length > 0 && (
               <Card className="space-y-1">
                 <p className="text-xs font-semibold text-[#6B7A99] uppercase tracking-wide">In the app but not in the sheet (left as is)</p>
                 {plan.notInSheet.map(e => <p key={e.id} className="text-xs text-[#1B2E6B]">{e.name}</p>)}
               </Card>
             )}
-            <Button fullWidth size="lg" onClick={apply} disabled={busy || (!plan.creates.length && !plan.updates.length)}>
-              {busy ? 'Saving…' : plan.creates.length || plan.updates.length ? `Apply ${plan.creates.length + plan.updates.length} change${plan.creates.length + plan.updates.length === 1 ? '' : 's'}` : 'Nothing to change'}
+            <Button fullWidth size="lg" onClick={apply} disabled={busy}>
+              {busy ? 'Saving…' : plan.creates.length || plan.updates.length
+                ? `Apply ${plan.creates.length + plan.updates.length} change${plan.creates.length + plan.updates.length === 1 ? '' : 's'} + certifications`
+                : 'Update certifications'}
             </Button>
           </>
         )}

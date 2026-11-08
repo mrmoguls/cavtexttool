@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useData } from '../../lib/data-context'
 import { useAuth } from '../../lib/auth'
-import { bySeniority, DOW_LONG, dowOf, overtimeLimits, overtimeWarnings, workProblem } from '../../lib/scheduling'
+import { bySeniority, DOW_LONG, dowOf, drivingBlockers, overtimeLimits, overtimeWarnings, todayISO, workProblem } from '../../lib/scheduling'
 import { Button } from '../ui/Button'
 import { Field, Select, TextArea, Warning } from '../ui/Form'
 import type { Shift } from '../../types'
@@ -41,11 +41,20 @@ export function AssignPicker({ shift, onSave, saveLabel = 'Assign', allowOpen = 
         if (v <= 0) warnings.unshift(`Marked not available on ${DOW_LONG[dowOf(shift.date)]}s in the schedule sheet.`)
         else if (v < 1) warnings.unshift(`Only partly available on ${DOW_LONG[dowOf(shift.date)]}s.`)
       }
+      // Expired license / medical card (from the certifications sheet).
+      if (shift.role === 'driver') {
+        for (const i of drivingBlockers(data.complianceItems, e.id, todayISO())) {
+          warnings.unshift(`${i.requirement} is expired${i.renewal_reported_at ? ' (they reported renewing it; confirm before assigning)' : ''}.`)
+        }
+      }
+      if (data.timeOff.some(t => t.employee_id === e.id && t.status === 'approved' && t.start_date <= shift.date && t.end_date >= shift.date)) {
+        warnings.unshift('On approved time off that day.')
+      }
       return { e, problem, warnings }
     }).sort((a, b) =>
       Number(!!a.problem && a.problem !== 'Already working that day.') - Number(!!b.problem && b.problem !== 'Already working that day.') ||
       a.warnings.length - b.warnings.length)
-  }, [data.employees, data.shifts, data.blocksById, data.contacts, shift, block, limits])
+  }, [data.employees, data.shifts, data.blocksById, data.contacts, data.complianceItems, data.timeOff, shift, block, limits])
 
   const chosen = options.find(o => o.e.id === choice)
   const blocked = chosen?.problem && chosen.problem !== 'Already working that day.'
@@ -75,7 +84,7 @@ export function AssignPicker({ shift, onSave, saveLabel = 'Assign', allowOpen = 
             <option key={e.id} value={e.id} disabled={e.id === shift.employee_id}>
               {e.name} · {e.employment_type}
               {problem && problem !== 'Already working that day.' ? ` · ${problem.replace(/\.$/, '')}` : problem ? ' · working that day' : ''}
-              {!problem && warnings.length ? (warnings[0].startsWith('Marked not') ? ' · unavailable' : ' · warning') : ''}
+              {!problem && warnings.length ? (/expired/.test(warnings[0]) ? ' · expired cert' : warnings[0].startsWith('On approved time off') ? ' · time off' : warnings[0].startsWith('Marked not') ? ' · unavailable' : ' · warning') : ''}
               {e.id === shift.employee_id ? ' · current' : ''}
             </option>
           ))}

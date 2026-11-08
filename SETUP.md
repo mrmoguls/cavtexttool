@@ -26,6 +26,7 @@ Each one should finish with "Success". They're safe to run again if you're unsur
 4. `supabase/migrations/003_shifts_and_notifications.sql` — dated shifts and in-app notifications
 5. `supabase/migrations/004_shift_board.sql` — shift board: give-ups, trades, sick calls, approvals
 6. `supabase/migrations/005_bidding_and_sheet_sync.sql` — line bidding + Google Sheet sync fields
+7. `supabase/migrations/006_compliance_and_time_off.sql` — certifications (expiration tracking) + time off
 
 > **Already running the app?** Do the same: run 001 then 002. Your existing drivers become
 > employees automatically, but **nobody can sign in until they have a phone number on file**
@@ -178,16 +179,24 @@ shown to admins during bid review.
 After a sync, those fields are locked in the app ("Managed in the Google Sheet"). Gurney
 qualification isn't in the sheet, so it's still set in the app.
 
-### Optional: automatic "bidding closes soon" reminders
+The same sync also reads the **Due Dates** and **Requirements** tabs (certifications and how to
+renew them). Update dates in the sheet, then sync.
+
+### Automatic reminders (recommended)
 
 In Supabase → **Database → Extensions**, enable `pg_cron`, then run:
 
 ```sql
+-- Every morning around 7 am Pacific: certification reminders (60 / 30 / 7 days, weekly once
+-- overdue) and a heads-up to dispatch about open shifts starting within 24 hours.
+select cron.schedule('daily-alerts', '0 15 * * *', $$select public.run_daily_alerts()$$);
+
+-- Hourly: "bidding closes soon" for people who haven't ranked, once, in the last 24 hours.
 select cron.schedule('bid-reminders', '0 * * * *', $$select public.notify_bids_closing_soon()$$);
 ```
 
-It reminds people who haven't ranked yet, once, in the last 24 hours before a deadline. Admins can
-also send a reminder by hand from the bid screen.
+(Times are UTC; 15:00 UTC is 7 am in winter and 8 am in summer.) Admins can also send both kinds of
+reminder by hand: **Admin → Certifications → Send reminders now**, and **Send reminder** on a bid.
 
 ---
 
@@ -243,6 +252,18 @@ To remove someone, turn off **Active** (their history is kept).
 
 To add a growth line mid-period, create it under **Admin → Lines** (category Growth), then use
 **Offer by seniority** on it. To make it permanent, **Convert to core**.
+
+## Certifications and time off
+
+- **Drivers** see a Certifications card on their Schedule tab (red when something is overdue), with
+  due dates and how to renew. After renewing, they tap **I renewed it**; admins see it under
+  **Admin → Certifications → Renewed, waiting for the sheet**.
+- An **expired driver's license or medical card** shows on the roster and as a warning when
+  dispatch assigns that person a shift.
+- **Time off:** drivers request a date range from their Schedule tab. Requests less than 14 days
+  ahead are marked short notice (not blocked). Dispatch approves or denies under **Requests**;
+  approving releases that person's shifts on those days as open shifts and notifies eligible
+  coworkers. New schedules and bid results skip approved time off.
 
 ## Shift board rules
 

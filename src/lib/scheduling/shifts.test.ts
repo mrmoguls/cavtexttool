@@ -85,3 +85,11 @@ describe('roster', () => {
     expect(shiftTimeLabel({ start_time: null, end_time: null }, block('AM'))).toBe('Start not posted yet – trips complete')
   })
 })
+
+describe('time off in generation', () => {
+  it('skips approved time-off days', () => {
+    const out = generateShifts({ ...base, assignments: [assign('FT1', 'e1')], from: '2026-11-09', to: '2026-11-13',
+      timeOff: [{ employee_id: 'e1', start_date: '2026-11-10', end_date: '2026-11-11' }] })
+    expect(out.map(s => s.date)).toEqual(['2026-11-09', '2026-11-12', '2026-11-13'])
+  })
+})

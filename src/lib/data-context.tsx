@@ -3,12 +3,14 @@ import { db, type TableName } from './db'
 import { useAuth } from './auth'
 import { addDays, assignmentConflicts, formatDate, formatTime, generateShifts, todayISO } from './scheduling'
 import * as bidding from './bidding-actions'
+import * as people from './people-actions'
 import type { SheetValues, SyncPlan } from './sheet-sync'
 import { assignShift, createShift, decideRequest, driverActions, loadShiftHistory, type DecisionOptions, type SwapCandidate } from './board-actions'
 import type {
   Announcement, AnnouncementView, AppSetting, Block, CoverageRequirement, CrewRole, Dow, Employee,
   EmployeeContact, Line, LineAssignment, LineDay, Message, Shift, AppNotification, ShiftRequest,
   BidPeriod, BidPeriodLine, BidOptin, Bid, BidResult,
+  ComplianceItem, ComplianceRequirement, TimeOffKind, TimeOffRequest,
 } from '../types'
 
 const TABLES: TableName[] = [
@@ -16,6 +18,7 @@ const TABLES: TableName[] = [
   'blocks', 'lines', 'line_days', 'coverage_requirements', 'line_assignments', 'app_settings',
   'shifts', 'notifications', 'shift_requests',
   'bid_periods', 'bid_period_lines', 'bid_optins', 'bids', 'bid_results',
+  'compliance_requirements', 'compliance_items', 'time_off_requests',
 ]
 
 /** How far back shifts are loaded (the roster/schedule look ahead from today). */
@@ -42,6 +45,9 @@ type Tables = {
   bid_optins: BidOptin[]
   bids: Bid[]
   bid_results: BidResult[]
+  compliance_requirements: ComplianceRequirement[]
+  compliance_items: ComplianceItem[]
+  time_off_requests: TimeOffRequest[]
 }
 
 const EMPTY: Tables = {
@@ -49,6 +55,7 @@ const EMPTY: Tables = {
   blocks: [], lines: [], line_days: [], coverage_requirements: [], line_assignments: [], app_settings: [],
   shifts: [], notifications: [], shift_requests: [],
   bid_periods: [], bid_period_lines: [], bid_optins: [], bids: [], bid_results: [],
+  compliance_requirements: [], compliance_items: [], time_off_requests: [],
 }
 
 export type EmployeeDraft = Omit<Employee, 'id' | 'created_at' | 'auth_user_id' | 'push_subscription'> & { id?: string }
@@ -144,7 +151,20 @@ interface DataAPI {
 
   // Google Sheet sync
   fetchSheet: () => Promise<SheetValues>
-  applySync: (plan: SyncPlan) => Promise<void>
+  /** Applies employee changes, then the Due Dates / Requirements tabs. */
+  applySync: (plan: SyncPlan, values: SheetValues) => Promise<{ upserts: number; deletes: number; unmatched: string[] }>
+
+  // Certifications
+  complianceItems: ComplianceItem[]
+  complianceRequirements: ComplianceRequirement[]
+  reportRenewal: (itemId: string, note: string | null) => Promise<void>
+  runAlertsNow: () => Promise<number>
+
+  // Time off
+  timeOff: TimeOffRequest[]
+  requestTimeOff: (start: string, end: string, kind: TimeOffKind, note: string | null) => Promise<void>
+  cancelTimeOff: (id: string) => Promise<void>
+  decideTimeOff: (id: string, approve: boolean, opts: { by: string | null; note: string | null }) => Promise<void>
 }
 
 const DataContext = createContext<DataAPI>(null!)
@@ -365,7 +385,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         const existing = await db.select<Shift>('shifts', { eq: { assignment_id: created.id } })
         const drafts = generateShifts({
           assignments: [created], lines: tables.lines, lineDays: tables.line_days, blocks: tables.blocks,
-          existing, from, to: generatedThrough, createdBy,
+          existing, from, to: generatedThrough, createdBy, timeOff: await people.approvedTimeOff(),
         })
         await db.insert('shifts', drafts as unknown as Record<string, unknown>[])
       }
@@ -407,7 +427,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       }
       const drafts = generateShifts({
         assignments: tables.line_assignments, lines: tables.lines, lineDays: tables.line_days,
-        blocks: tables.blocks, existing, from, to, createdBy,
+        blocks: tables.blocks, existing, from, to, createdBy, timeOff: await people.approvedTimeOff(),
       })
       await db.insert('shifts', drafts as unknown as Record<string, unknown>[])
       if (!generatedThrough || to > generatedThrough) {
@@ -473,10 +493,24 @@ export function DataProvider({ children }: { children: ReactNode }) {
     cancelPeriod: (id) => bid(() => bidding.cancelPeriod(id)),
 
     fetchSheet: bidding.fetchSheet,
-    applySync: async (plan) => {
-      await bidding.applySync(plan)
-      await Promise.all([loadTable('employees'), loadTable('employee_contacts')])
+    applySync: async (plan, values) => {
+      try {
+        await bidding.applySync(plan)
+        return await people.applyCompliance(values)
+      } finally {
+        await Promise.all(['employees', 'employee_contacts', 'compliance_items', 'compliance_requirements'].map(t => loadTable(t as TableName)))
+      }
     },
+
+    complianceItems: tables.compliance_items,
+    complianceRequirements: tables.compliance_requirements,
+    reportRenewal: async (id, note) => { try { await people.reportRenewal(id, note) } finally { await Promise.all([loadTable('compliance_items'), loadTable('notifications')]) } },
+    runAlertsNow: async () => { try { return await people.runAlertsNow() } finally { await Promise.all([loadTable('compliance_items'), loadTable('notifications')]) } },
+
+    timeOff: tables.time_off_requests,
+    requestTimeOff: async (a, b, k, n) => { try { await people.requestTimeOff(a, b, k, n) } finally { await Promise.all([loadTable('time_off_requests'), loadTable('notifications')]) } },
+    cancelTimeOff: async (id) => { try { await people.cancelTimeOff(id) } finally { await loadTable('time_off_requests') } },
+    decideTimeOff: (id, approve, opts) => board(async () => { try { await people.decideTimeOff(id, approve, opts) } finally { await loadTable('time_off_requests') } }),
 
     markNotificationsRead: async (ids) => {
       if (ids.length === 0) return

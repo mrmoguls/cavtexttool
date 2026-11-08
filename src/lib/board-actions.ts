@@ -59,9 +59,14 @@ async function activeRequestsFor(shiftId: string): Promise<ShiftRequest[]> {
 }
 
 async function cancelActive(shiftId: string, exceptId: string | null, note: string) {
-  for (const r of await activeRequestsFor(shiftId)) {
-    if (r.id === exceptId) continue
+  const active = (await activeRequestsFor(shiftId)).filter(r => r.id !== exceptId)
+  if (!active.length) return
+  const label = await shiftLabel(await getShift(shiftId))
+  for (const r of active) {
     await db.update('shift_requests', { id: r.id }, { status: 'cancelled', decision_note: note, updated_at: new Date().toISOString() })
+    // Tell whoever was waiting on it (not the person whose shift it was).
+    const waiting = r.type === 'pickup' ? r.requester_id : r.type === 'giveup' ? r.claimant_id : r.type === 'swap' ? r.target_id : null
+    await notify(waiting, 'request_cancelled', `Request closed: ${label}`, `${note}. Check the Board for other open shifts.`, shiftId)
   }
 }
 
@@ -73,12 +78,12 @@ async function requireOutsideCutoff(shift: Shift) {
 
 // ─── Notifications ────────────────────────────────────────────────────────────
 
-async function notify(employeeId: string | null, kind: string, title: string, body: string | null, shiftId: string | null) {
+export async function notify(employeeId: string | null, kind: string, title: string, body: string | null, shiftId: string | null) {
   if (!employeeId) return
   await db.insert('notifications', { employee_id: employeeId, kind, title, body, shift_id: shiftId, read_at: null })
 }
 
-async function notifyStaff(kind: string, title: string, body: string | null, shiftId: string | null) {
+export async function notifyStaff(kind: string, title: string, body: string | null, shiftId: string | null) {
   const staff = (await db.select<Employee>('employees')).filter(e => e.active && (e.role === 'dispatcher' || e.role === 'admin'))
   if (staff.length) {
     await db.insert('notifications', staff.map(e => ({ employee_id: e.id, kind, title, body, shift_id: shiftId, read_at: null })))
@@ -281,6 +286,8 @@ export interface DecisionOptions {
   overrideReason?: string | null
   /** Overtime warnings the dispatcher saw; approving with any requires an override reason. */
   warnings?: string[]
+  /** Don't notify the person taken off (e.g. their time off was approved; they get one summary). */
+  quiet?: boolean
 }
 
 function requireOverride(opts: DecisionOptions) {
@@ -398,7 +405,7 @@ export async function assignShift(shiftId: string, employeeId: string | null, op
     override_reason: opts.overrideReason?.trim() || null, ot_warnings: opts.warnings?.length ? opts.warnings : null,
     decided_by: opts.by, decided_at: now,
   }))
-  if (s.employee_id) await notify(s.employee_id, 'shift_removed', `Dispatch took you off ${label}`, opts.note ?? null, s.id)
+  if (s.employee_id && !opts.quiet) await notify(s.employee_id, 'shift_removed', `Dispatch took you off ${label}`, opts.note ?? null, s.id)
   if (employeeId) await notify(employeeId, 'shift_assigned', `Dispatch added you to ${label}`, opts.note ?? null, s.id)
   else await announceOpenShift({ ...s, employee_id: null, status: 'open' }, s.employee_id)
 }
