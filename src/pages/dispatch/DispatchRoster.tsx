@@ -9,6 +9,7 @@ import { CalendarDays, Copy, Printer, Check, ChevronRight, FileSpreadsheet } fro
 import { ShiftSheet, FillSlot } from './ShiftSheet'
 import { ScheduleExport } from '../admin/ScheduleExport'
 import { TileIcon, isSetUp, useMyTiles } from '../../components/tiles/Tiles'
+import { PushCard } from '../../components/push/PushCard'
 import type { Block, CrewRole } from '../../types'
 
 type Day = 'today' | 'tomorrow' | 'pick'
@@ -55,6 +56,7 @@ export function DispatchRoster({ onOpenBambi }: { onOpenBambi?: () => void } = {
 
   return (
     <ScrollBody>
+      <div className="no-print"><PushCard /></div>
       {quickLinks.length > 0 && (
         <div className="no-print flex gap-2 overflow-x-auto scrollbar-hide -mx-1 px-1">
           {quickLinks.map(t => (

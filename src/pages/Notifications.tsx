@@ -4,6 +4,7 @@ import { Card } from '../components/ui/Card'
 import { EmptyState } from '../components/ui/EmptyState'
 import { ScrollBody, SubHeader } from '../components/ui/Form'
 import { Bell, ChevronRight } from 'lucide-react'
+import { PushCard } from '../components/push/PushCard'
 
 /** Something waiting on you elsewhere in the app (the same things that put a red bubble on a tab). */
 export interface AttentionItem { key: string; label: string; count: number; onOpen: () => void }
@@ -26,6 +27,7 @@ export function Notifications({ onBack, attention = [] }: { onBack: () => void; 
     <>
       <SubHeader title="Notifications" onBack={onBack} />
       <ScrollBody>
+        <PushCard variant="settings" />
         {waiting.length > 0 && (
           <Card className="space-y-1 border-2 border-[#CC2A2A]/30">
             <p className="font-semibold text-[#0B1A5C]">Needs your attention</p>

@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react'
 import { FunctionsHttpError } from '@supabase/supabase-js'
 import { isDemoMode, supabase } from './supabase'
+import { forgetThisPhone, syncPushSubscription } from './push'
 import { demoStore } from './demo-store'
 import type { DirectoryEntry, Employee } from '../types'
 
@@ -117,11 +118,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       store.remove(DEMO_SESSION_KEY)
       demoStore.actorId = null
     } else {
+      await forgetThisPhone()   // a shared phone shouldn't keep getting this person's notifications
       await supabase.auth.signOut()
     }
     setMe(null)
     setStatus('signed-out')
   }, [])
+
+  // If this phone already allows notifications, point them at whoever is signed in now.
+  const myId = me?.id
+  useEffect(() => { if (myId) void syncPushSubscription() }, [myId])
 
   const isStaff = me?.role === 'dispatcher' || me?.role === 'admin' || !!me?.can_dispatch
   const isAdmin = me?.role === 'admin'

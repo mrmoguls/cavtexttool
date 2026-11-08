@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useData } from '../lib/data-context'
-import { subscribeToPush, isPushSupported, isStandaloneMode } from '../lib/push'
+import { setAppBadge, useOpenFromNotification } from '../lib/push'
 import { Card } from '../components/ui/Card'
 import { Badge } from '../components/ui/Badge'
 import { Button } from '../components/ui/Button'
@@ -14,7 +14,7 @@ import { DriverBoard, useTradeOffers } from './driver/DriverBoard'
 import { Notifications, BellButton, bellCount, type AttentionItem } from './Notifications'
 import { useStartsToConfirm } from '../components/schedule/ConfirmStart'
 import type { Employee } from '../types'
-import { Bell, MessageSquare, Megaphone, CheckCircle, Play, CalendarDays, Repeat, House } from 'lucide-react'
+import { MessageSquare, Megaphone, CheckCircle, Play, CalendarDays, Repeat, House } from 'lucide-react'
 
 interface DriverHomeProps {
   driver: Employee
@@ -26,7 +26,6 @@ interface DriverHomeProps {
 export function DriverHome({ driver, onSignOut, onSwitch }: DriverHomeProps) {
   const [tab, setTab] = useState<'home' | 'schedule' | 'board' | 'feed' | 'messages'>('home')
   const [showNotifications, setShowNotifications] = useState(false)
-  const [pushEnabled, setPushEnabled] = useState(false)
   const [acknowledging, setAcknowledging] = useState<string | null>(null)
 
   const data = useData()
@@ -36,17 +35,19 @@ export function DriverHome({ driver, onSignOut, onSwitch }: DriverHomeProps) {
   const tradeOffers = useTradeOffers(driver.id)
   const toConfirm = useStartsToConfirm(driver.id)
 
+  // Tapping a phone notification opens the matching screen.
+  useOpenFromNotification(target => {
+    if (target === 'notifications') { setShowNotifications(true); return }
+    setShowNotifications(false)
+    if (target === 'messages' || target === 'feed' || target === 'board' || target === 'schedule' || target === 'home') setTab(target)
+  })
+
   const getView = (id: string) => driverViews.find(v => v.announcement_id === id)
 
   async function handleAcknowledge(annId: string) {
     setAcknowledging(annId)
     await data.acknowledge(annId, driver.id)
     setAcknowledging(null)
-  }
-
-  async function enablePush() {
-    const ok = await subscribeToPush()
-    setPushEnabled(ok)
   }
 
   const pendingAcks = announcements.filter(a => {
@@ -63,6 +64,9 @@ export function DriverHome({ driver, onSignOut, onSwitch }: DriverHomeProps) {
     { key: 'messages', label: unreadMessages === 1 ? 'Unread message' : 'Unread messages', count: unreadMessages, onOpen: go('messages') },
   ]
 
+  const bell = bellCount(data.unreadNotifications, attention)
+  useEffect(() => { setAppBadge(bell) }, [bell])
+
   const tabs = [
     { key: 'home', label: 'Home', icon: <House size={20} />, badge: toConfirm.length },
     { key: 'schedule', label: 'Schedule', icon: <CalendarDays size={20} /> },
@@ -77,7 +81,7 @@ export function DriverHome({ driver, onSignOut, onSwitch }: DriverHomeProps) {
         greeting={`Good to see you, ${driver.name.split(' ')[0]}`}
         right={
           <div className="flex items-center gap-3">
-            <BellButton count={bellCount(data.unreadNotifications, attention)} onClick={() => setShowNotifications(true)} />
+            <BellButton count={bell} onClick={() => setShowNotifications(true)} />
             {onSwitch && (
               <button onClick={onSwitch} className="text-xs font-semibold text-white bg-white/15 rounded-lg px-2 py-1">Dispatch</button>
             )}
@@ -99,17 +103,6 @@ export function DriverHome({ driver, onSignOut, onSwitch }: DriverHomeProps) {
           <DriverBoard driver={driver} />
         ) : tab === 'feed' ? (
           <div className="flex-1 overflow-y-auto scroll-area scrollbar-hide px-4 py-4 space-y-3">
-            {!pushEnabled && isPushSupported() && isStandaloneMode() && (
-              <div className="bg-[#FCE9E9] border border-[#E03A3A]/30 rounded-2xl p-4 flex items-start gap-3">
-                <Bell size={18} className="text-[#CC2A2A] flex-shrink-0 mt-0.5" />
-                <div className="flex-1">
-                  <p className="text-sm font-semibold text-[#0B1A5C]">Enable notifications</p>
-                  <p className="text-xs text-[#6B7A99] mt-0.5">Get alerted for start times and messages even when the app is closed.</p>
-                  <Button size="sm" className="mt-2" onClick={enablePush}>Enable</Button>
-                </div>
-              </div>
-            )}
-
             {pendingAcks.length > 0 && (
               <div className="bg-[#FCE9E9] border border-[#CC2A2A]/20 rounded-2xl p-3 flex items-center gap-3">
                 <div className="w-8 h-8 rounded-full bg-[#CC2A2A] flex items-center justify-center text-white text-sm font-bold">

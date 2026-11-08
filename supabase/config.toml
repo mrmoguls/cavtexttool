@@ -1,3 +1,6 @@
 # Only used if you deploy with the Supabase CLI (`supabase functions deploy pin-login`).
 [functions.pin-login]
 verify_jwt = false
+
+[functions.send-push]
+verify_jwt = false

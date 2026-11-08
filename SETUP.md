@@ -29,6 +29,7 @@ Each one should finish with "Success". They're safe to run again if you're unsur
 7. `supabase/migrations/006_compliance_and_time_off.sql` — certifications (expiration tracking) + time off
 8. `supabase/migrations/007_link_tiles.sql` — linked tiles on the Home screen (starts with empty links)
 9. `supabase/migrations/008_start_confirmations_and_bambi.sql` — start-time confirmations + weekly Bambi checklist
+10. `supabase/migrations/009_push_notifications.sql` — phone notifications (does nothing until Step 7 is done)
 
 > **Already running the app?** Do the same: run 001 then 002. Your existing drivers become
 > employees automatically, but **nobody can sign in until they have a phone number on file**
@@ -99,7 +100,7 @@ gurney qualification.
    VITE_SUPABASE_URL=https://your-project.supabase.co
    VITE_SUPABASE_ANON_KEY=your-anon-key-here
    ```
-3. Leave `VITE_VAPID_PUBLIC_KEY` blank for now — push notifications are a second step
+3. Leave `VITE_VAPID_PUBLIC_KEY` blank for now — it's filled in at Step 7 (phone notifications)
 
 ---
 
@@ -112,7 +113,7 @@ npm run dev
 
 Open `http://localhost:5173` — you should see the team list. Sign in as the admin you created in Step 2c.
 
-> **No Supabase keys yet?** The app runs in **demo mode** with sample people and data. Try Pat Morgan (admin, PIN 0100), Dana Reyes (dispatch, PIN 0101), or any driver — the PIN screen shows their demo PIN. Demo changes reset when you reload.
+> **No Supabase keys yet?** The app runs in **demo mode** with sample people and data. Try Pat Morgan (admin), Dana Reyes (dispatch) or any driver — every demo PIN is 0000. Demo changes reset when you reload.
 
 ---
 
@@ -130,18 +131,55 @@ Your app is now live at your Netlify URL. Share it with drivers.
 
 ---
 
-## Step 7: Set up push notifications (optional but recommended)
+## Step 7: Phone notifications (push)
 
-Push notifications let the app alert drivers even when it's closed — this is what makes it actually replace texting.
+Phone notifications alert people even when the app is closed: start times to confirm, schedule
+changes, swap and time-off answers, certification reminders, messages and announcements. This is
+what lets you stop texting start times. It's free (no per-message cost).
 
-1. Install the push key generator:
+**What gets sent:** everything that appears in a person's bell, plus messages (dispatch → driver
+goes to the driver; driver → dispatch goes to everyone who dispatches) and new announcements
+(everyone). Tapping one opens the matching screen.
+
+1. **Make the keys** (on any computer with Node installed):
    ```bash
    npx web-push generate-vapid-keys
    ```
-2. Copy the **Public Key** into `VITE_VAPID_PUBLIC_KEY` in your Netlify env vars
-3. Copy the **Private Key** — you'll need it in a Supabase Edge Function (see `supabase/push-function/` folder — coming soon, or ask Claude to help set this up)
+   It prints a **Public Key** and a **Private Key**. Keep the private key secret.
+2. **Make a long random secret** for the database to use when it calls the sender, for example:
+   ```bash
+   openssl rand -hex 32
+   ```
+3. **Deploy the sender.** Supabase → Edge Functions → Deploy new function → name it `send-push`,
+   paste `supabase/functions/send-push/index.ts`, and turn **off** "Verify JWT".
+4. **Add its secrets.** Edge Functions → Secrets:
+   - `VAPID_PUBLIC_KEY` = the public key
+   - `VAPID_PRIVATE_KEY` = the private key
+   - `VAPID_SUBJECT` = `mailto:` plus an email the push services can contact (e.g. `mailto:ryan@yourcompany.com`)
+   - `PUSH_WEBHOOK_SECRET` = the random secret from step 2
+5. **Tell the database where to send.** Make sure migration 009 has been run, then in the SQL Editor
+   (put in your project's address and the same secret):
+   ```sql
+   insert into push_config (function_url, secret)
+   values ('https://YOUR-PROJECT.supabase.co/functions/v1/send-push', 'THE-SECRET-FROM-STEP-2')
+   on conflict (id) do update set function_url = excluded.function_url, secret = excluded.secret;
+   ```
+   (Database → Extensions: check **pg_net** is on. Migration 009 turns it on if it can.)
+6. **Give the app the public key.** In Netlify → Environment variables, set
+   `VITE_VAPID_PUBLIC_KEY` = the public key, then redeploy.
+7. **Turn it on, on each phone.** A "Turn on notifications" card shows on the Home screen
+   (and on the Notifications screen). Tap **Turn on** → **Allow**.
 
-> **iPhone note:** Push notifications on iOS require the driver to first add the app to their Home Screen. The app has a built-in walkthrough screen that explains this step-by-step.
+**iPhones:** notifications only work once CAV Hub is added to the Home Screen (Safari → Share →
+Add to Home Screen) and opened from that icon, on iOS 16.4 or newer. The card explains this on
+iPhones that haven't done it. Android (Chrome) works from the browser or the installed app.
+
+**Shared phones:** signing out ("Not you?") stops that person's notifications on that phone; the
+next person who signs in and has notifications allowed gets theirs instead.
+
+**Checking it works:** post a start time or send yourself a message from dispatch. Nothing
+arriving? Supabase → Edge Functions → send-push → Logs, and confirm `push_config` has the right
+address and the secret matches `PUSH_WEBHOOK_SECRET` exactly.
 
 ---
 
@@ -251,8 +289,8 @@ Dispatch sees **Waiting** / **Confirmed (time)** for each driver. Not confirmed 
 phone's messages with the same wording, for anyone who still hasn't answered. Changing a posted time
 asks the driver to confirm again.
 
-Tip: drivers who install CAV Hub to their home screen and allow notifications see these right away
-(phone push is the next setup step); until then they see them when they open the app.
+Drivers who turned on notifications (Step 7) get these on their phone right away; anyone else
+sees them the next time they open the app.
 
 ## Weekly routine
 

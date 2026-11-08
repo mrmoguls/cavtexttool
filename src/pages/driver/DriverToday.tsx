@@ -3,6 +3,7 @@ import { useData } from '../../lib/data-context'
 import { addDays, formatDate, needsPostedStart, shiftTimeLabel, todayISO } from '../../lib/scheduling'
 import { Card } from '../../components/ui/Card'
 import { ScrollBody, SectionLabel } from '../../components/ui/Form'
+import { PushCard } from '../../components/push/PushCard'
 import { ShiftLinks, TileCard, useMyTiles } from '../../components/tiles/Tiles'
 import { BidBanner, DriverBid } from './DriverBid'
 import { CertificationsCard, MyCertifications } from './MyCertifications'
@@ -44,6 +45,7 @@ export function DriverToday({ driver, onOpenBoard, onMessageDispatch }: { driver
     <ScrollBody>
       <p className="text-sm text-[#6B7A99] px-1">{formatDate(today)}</p>
       {toConfirm.map(s => <ConfirmStartCard key={`c-${s.id}`} shift={s} />)}
+      <PushCard />
 
       {todays.length > 0 ? todays.map(s => <TodayCard key={s.id} shift={s} onOpen={() => setOpenShift(s)} />) : (
         <Card className="space-y-1">

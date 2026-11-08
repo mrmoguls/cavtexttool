@@ -1,6 +1,6 @@
 # CAV Hub (Care-A-Van driver app) — Roadmap
 
-_Last updated: 2026-11-07_
+_Last updated: 2026-11-08_
 
 ## Vision
 One mobile-first app (PWA) that is the driver's **single starting point for work**. Drivers open one app with one login and find everything they need there, either built in or one tap away.
@@ -26,7 +26,8 @@ One mobile-first app (PWA) that is the driver's **single starting point for work
 | Line bidding by seniority; seniority from the Google Sheet (Roster tab) | 1 | ✅ Built |
 | Daily roster for Bambi, AM start-time posting | 1 | ✅ Built |
 | Weekly Bambi checklist (Bambi week view + list of changes since the week was entered) | 1 | ✅ Built |
-| Start-time confirmation by drivers (replaces texting and thumbs-up replies) | 1 | ✅ Built — phone push still to set up |
+| Start-time confirmation by drivers (replaces texting and thumbs-up replies) | 1 | ✅ Built |
+| Phone push notifications (bell items, messages, announcements; tap opens the right screen; app-icon badge) | 1 | ✅ Built — needs the keys from SETUP.md Step 7 |
 | Schedule export for Bambi (Excel with 3 sheets + CSV: weekly availability, dated shifts, week at a glance) | 1 | ✅ Built — match Bambi's import template once we have it |
 | Open shifts to current staff wanting more hours **before new hires** | 1 | 🟡 Partly: a "part-time first" window exists; no "wants more hours" flag yet |
 | Dispatch alert when an open shift has no taker within 24 hours | 1 | ✅ Built (banner + daily notification) |
@@ -83,7 +84,7 @@ _Note: the scheduling work (shift scheduling, shift board, line bidding) was bui
 - **Does Bambi handle billing and trip logs, or only the driver view?** This decides whether replacing it is small or a major project (dispatch and billing would have to move too).
 - **HIPAA:** if ride/patient data ever enters this app, confirm a BAA with Supabase (check plan requirements) and HIPAA-level controls first.
   - The in-app **messages** and shift-board **notes** are free text. Drivers could type patient details there by habit. Consider a short "no patient names or details" reminder on those boxes.
-- **Phone push notifications** (free, for drivers who install the app) so start-time confirmations reach drivers right away; optional automatic texts (e.g. Twilio, a few cents per text plus carrier registration) for drivers who don't install it.
+- **Automatic texts for people without notifications** (e.g. Twilio, a few cents per text plus carrier registration), if some drivers can't or won't turn on phone notifications.
 - Payroll provider after BBSI (time clock tile target may change).
 - Exact deep-link behavior for Bambi / BBSI apps on iPhone vs Android (test both; iPhone PWA is the strictest case).
 - **Vans:** fuel receipts are tied to a van, so that feature will need a vans list (the roster deliberately leaves vans out).
@@ -95,6 +96,7 @@ _Note: the scheduling work (shift scheduling, shift board, line bidding) was bui
 ## Decision log
 - **2026-11-07:** Chose "one front door" hub model: native features for what we own, linked tiles for Bambi, payroll time clock, training (Coggno), and other tools. Decided not to rebuild ride management or payroll timekeeping for now.
 - **2026-11-07:** Amber keeps entering teams in Bambi, weekly (clone a day). CAV Hub lists every change to an entered week as a Bambi update. Start times are posted the night before from the first pickup (−30 min) and drivers confirm in the app instead of by text.
+- **2026-11-08:** Phone notifications use free web push (no texting service). Everything in the bell, messages and announcements go to the phone; signing out stops them on that phone.
 - **2026-11-07:** The app is named **CAV Hub**.
 - **2026-11-07:** Linked tiles built with empty placeholder links; admins add the real Bambi, accident-instructions and repair-quote links (BBSI time clock, Coggno training, handbook and call dispatch are set) in the app.
 - **2026-11-07:** Pre-trip inspections stay in Bambi (already in use there); CAV Hub has no pre-trip feature or tile.

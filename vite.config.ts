@@ -25,6 +25,8 @@ export default defineConfig({
         ],
       },
       workbox: {
+        // Phone notifications (push + tap to open), see public/push-sw.js.
+        importScripts: ['push-sw.js'],
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         runtimeCaching: [
           {

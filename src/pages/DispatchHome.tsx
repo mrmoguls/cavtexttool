@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { setAppBadge, useOpenFromNotification } from '../lib/push'
 import { useAuth } from '../lib/auth'
 import { useData } from '../lib/data-context'
 import { Card } from '../components/ui/Card'
@@ -43,6 +44,30 @@ export function DispatchHome({ onSignOut, onSwitch }: DispatchHomeProps) {
   // Announcements and messages go to the crew (drivers + attendants).
   const drivers = data.employees.filter(e => e.active && (e.role === 'driver' || e.role === 'attendant'))
 
+  const startsBadge = (starts.phase === 'warning' || starts.phase === 'overdue' ? starts.unset.length : 0) + (unconfirmed.late ? unconfirmed.waiting.length : 0)
+  const go = (t: typeof tab) => () => { setShowNotifications(false); setShowBambi(false); setTab(t) }
+  const attention: AttentionItem[] = [
+    { key: 'requests', label: 'Requests waiting for a decision', count: pendingRequests, onOpen: go('requests') },
+    { key: 'open', label: 'Open shifts within 24 hours, nobody on them', count: openSoon.length, onOpen: go('requests') },
+    { key: 'starts', label: 'AM start times to post or confirm', count: startsBadge, onOpen: go('starts') },
+    { key: 'inbox', label: 'Unread messages', count: unreadDispatch, onOpen: go('inbox') },
+    { key: 'bambi', label: 'Updates to make in Bambi', count: bambiUpdates.length, onOpen: () => { setShowNotifications(false); setShowBambi(true) } },
+  ]
+
+  const bell = bellCount(data.unreadNotifications, attention)
+
+  useEffect(() => { setAppBadge(bell) }, [bell])
+
+  // Tapping a phone notification opens the matching screen.
+  useOpenFromNotification(target => {
+    setComposing(false); setSelectedAnnouncement(null); setSelectedDriver(null); setShowBambi(false)
+    if (target === 'notifications') { setShowNotifications(true); return }
+    setShowNotifications(false)
+    if (target === 'inbox' || target === 'messages') setTab('inbox')
+    else if (target === 'feed') setTab('announcements')
+    else if (target === 'requests' || target === 'starts' || target === 'roster') setTab(target)
+  })
+
   function handleSignOut() {
     onSignOut()
   }
@@ -66,16 +91,6 @@ export function DispatchHome({ onSignOut, onSwitch }: DispatchHomeProps) {
     return <DispatchThread driver={selectedDriver} onBack={() => setSelectedDriver(null)} />
   }
 
-  const startsBadge = (starts.phase === 'warning' || starts.phase === 'overdue' ? starts.unset.length : 0) + (unconfirmed.late ? unconfirmed.waiting.length : 0)
-  const go = (t: typeof tab) => () => { setShowNotifications(false); setShowBambi(false); setTab(t) }
-  const attention: AttentionItem[] = [
-    { key: 'requests', label: 'Requests waiting for a decision', count: pendingRequests, onOpen: go('requests') },
-    { key: 'open', label: 'Open shifts within 24 hours, nobody on them', count: openSoon.length, onOpen: go('requests') },
-    { key: 'starts', label: 'AM start times to post or confirm', count: startsBadge, onOpen: go('starts') },
-    { key: 'inbox', label: 'Unread messages', count: unreadDispatch, onOpen: go('inbox') },
-    { key: 'bambi', label: 'Updates to make in Bambi', count: bambiUpdates.length, onOpen: () => { setShowNotifications(false); setShowBambi(true) } },
-  ]
-
   const tabs = [
     { key: 'roster', label: 'Roster', icon: <ClipboardList size={20} /> },
     { key: 'requests', label: 'Requests', icon: <Repeat size={20} />, badge: pendingRequests },
@@ -91,7 +106,7 @@ export function DispatchHome({ onSignOut, onSwitch }: DispatchHomeProps) {
         title="Dispatch"
         right={
           <div className="flex items-center gap-3">
-            <BellButton count={bellCount(data.unreadNotifications, attention)} onClick={() => setShowNotifications(true)} />
+            <BellButton count={bell} onClick={() => setShowNotifications(true)} />
             {onSwitch && (
               <button onClick={onSwitch} className="text-xs font-semibold text-white bg-white/15 rounded-lg px-2 py-1">My schedule</button>
             )}
