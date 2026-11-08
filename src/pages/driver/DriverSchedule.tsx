@@ -11,12 +11,9 @@ import { ScrollBody, Segmented, SectionLabel, SubHeader } from '../../components
 import type { Employee, Shift } from '../../types'
 import { CalendarDays, ChevronLeft, ChevronRight, Clock } from 'lucide-react'
 import { ShiftActions } from './ShiftActions'
-import { BidBanner, DriverBid } from './DriverBid'
-import { CertificationsCard, MyCertifications } from './MyCertifications'
 import { TimeOff, rangeText } from './TimeOff'
 import { Button } from '../../components/ui/Button'
 import { Plane } from 'lucide-react'
-import type { BidPeriod } from '../../types'
 import { StatusPill } from '../../components/schedule/ShiftBits'
 import { isActive, REQUEST_STATUS_LABEL } from '../../lib/scheduling'
 
@@ -34,8 +31,7 @@ export function DriverSchedule({ driver, onMessageDispatch }: { driver: Employee
   const [view, setView] = useState<'list' | 'week'>('list')
   const [weekStart, setWeekStart] = useState(() => mondayOf(today))
   const [open, setOpen] = useState<Shift | null>(null)
-  const [bidding, setBidding] = useState<BidPeriod | null>(null)
-  const [sub, setSub] = useState<'certs' | 'timeoff' | null>(null)
+  const [sub, setSub] = useState<'timeoff' | null>(null)
 
   const mine = useMemo(
     () => data.shifts
@@ -44,13 +40,8 @@ export function DriverSchedule({ driver, onMessageDispatch }: { driver: Employee
     [data.shifts, driver.id],
   )
 
-  if (sub === 'certs') return <MyCertifications driver={driver} onBack={() => setSub(null)} />
   if (sub === 'timeoff') return <TimeOff driver={driver} onBack={() => setSub(null)} />
 
-  if (bidding) {
-    const fresh = data.bidPeriods.find(p => p.id === bidding.id) ?? bidding
-    return <DriverBid driver={driver} period={fresh} onBack={() => setBidding(null)} />
-  }
 
   if (open) {
     const fresh = data.shifts.find(s => s.id === open.id) ?? open
@@ -77,8 +68,6 @@ export function DriverSchedule({ driver, onMessageDispatch }: { driver: Employee
 
   return (
     <ScrollBody>
-      <BidBanner driver={driver} onOpen={setBidding} />
-      <CertificationsCard driver={driver} onOpen={() => setSub('certs')} />
       <Card>
         <p className="text-xs font-semibold text-[#6B7A99] uppercase tracking-wide">Your line</p>
         {line ? (

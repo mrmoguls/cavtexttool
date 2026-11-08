@@ -7,6 +7,7 @@ import { EmptyState } from '../../components/ui/EmptyState'
 import { ScrollBody, Segmented, TextInput, Warning } from '../../components/ui/Form'
 import { CalendarDays, Copy, Printer, Check, ChevronRight } from 'lucide-react'
 import { ShiftSheet, FillSlot } from './ShiftSheet'
+import { TileIcon, isSetUp, useMyTiles } from '../../components/tiles/Tiles'
 import type { Block, CrewRole } from '../../types'
 
 type Day = 'today' | 'tomorrow' | 'pick'
@@ -21,6 +22,7 @@ export function DispatchRoster() {
   const textRef = useRef<HTMLTextAreaElement>(null)
   const [openShift, setOpenShift] = useState<string | null>(null)
   const [fill, setFill] = useState<{ block: Block; role: CrewRole } | null>(null)
+  const quickLinks = useMyTiles().filter(isSetUp)
 
   const date = day === 'today' ? today : day === 'tomorrow' ? addDays(today, 1) : picked
   const groups = useMemo(() => buildRoster({
@@ -50,6 +52,17 @@ export function DispatchRoster() {
 
   return (
     <ScrollBody>
+      {quickLinks.length > 0 && (
+        <div className="no-print flex gap-2 overflow-x-auto scrollbar-hide -mx-1 px-1">
+          {quickLinks.map(t => (
+            <a key={t.id} href={t.url!} target={/^https?:/i.test(t.url!) ? '_blank' : undefined} rel="noreferrer"
+              onClick={() => data.recordTap(t.id, 'home')}
+              className="flex items-center gap-1.5 bg-white rounded-full px-3 py-1.5 text-xs font-semibold text-[#0B1A5C] whitespace-nowrap border border-[#D8DFEF]">
+              <TileIcon tile={t} size={14} /> {t.name}
+            </a>
+          ))}
+        </div>
+      )}
       <div className="no-print space-y-3">
         <Segmented
           value={day}

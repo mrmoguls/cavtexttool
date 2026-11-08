@@ -10,7 +10,7 @@ import type {
   Announcement, AnnouncementView, AppSetting, Block, CoverageRequirement, CrewRole, Dow, Employee,
   EmployeeContact, Line, LineAssignment, LineDay, Message, Shift, AppNotification, ShiftRequest,
   BidPeriod, BidPeriodLine, BidOptin, Bid, BidResult,
-  ComplianceItem, ComplianceRequirement, TimeOffKind, TimeOffRequest,
+  ComplianceItem, ComplianceRequirement, TimeOffKind, TimeOffRequest, LinkTile, TileTap,
 } from '../types'
 
 const TABLES: TableName[] = [
@@ -18,7 +18,7 @@ const TABLES: TableName[] = [
   'blocks', 'lines', 'line_days', 'coverage_requirements', 'line_assignments', 'app_settings',
   'shifts', 'notifications', 'shift_requests',
   'bid_periods', 'bid_period_lines', 'bid_optins', 'bids', 'bid_results',
-  'compliance_requirements', 'compliance_items', 'time_off_requests',
+  'compliance_requirements', 'compliance_items', 'time_off_requests', 'link_tiles',
 ]
 
 /** How far back shifts are loaded (the roster/schedule look ahead from today). */
@@ -48,6 +48,7 @@ type Tables = {
   compliance_requirements: ComplianceRequirement[]
   compliance_items: ComplianceItem[]
   time_off_requests: TimeOffRequest[]
+  link_tiles: LinkTile[]
 }
 
 const EMPTY: Tables = {
@@ -55,7 +56,7 @@ const EMPTY: Tables = {
   blocks: [], lines: [], line_days: [], coverage_requirements: [], line_assignments: [], app_settings: [],
   shifts: [], notifications: [], shift_requests: [],
   bid_periods: [], bid_period_lines: [], bid_optins: [], bids: [], bid_results: [],
-  compliance_requirements: [], compliance_items: [], time_off_requests: [],
+  compliance_requirements: [], compliance_items: [], time_off_requests: [], link_tiles: [],
 }
 
 export type EmployeeDraft = Omit<Employee, 'id' | 'created_at' | 'auth_user_id' | 'push_subscription'> & { id?: string }
@@ -165,6 +166,15 @@ interface DataAPI {
   requestTimeOff: (start: string, end: string, kind: TimeOffKind, note: string | null) => Promise<void>
   cancelTimeOff: (id: string) => Promise<void>
   decideTimeOff: (id: string, approve: boolean, opts: { by: string | null; note: string | null }) => Promise<void>
+
+  // Linked tiles
+  tiles: LinkTile[]
+  /** Record a tap (fire-and-forget) for usage counts. */
+  recordTap: (tileId: string, context: 'home' | 'shift') => void
+  saveTile: (tile: Omit<LinkTile, 'id' | 'created_at'> & { id?: string }) => Promise<void>
+  deleteTile: (id: string) => Promise<void>
+  moveTile: (id: string, by: -1 | 1) => Promise<void>
+  loadTileTaps: (sinceISO: string) => Promise<TileTap[]>
 }
 
 const DataContext = createContext<DataAPI>(null!)
@@ -506,6 +516,29 @@ export function DataProvider({ children }: { children: ReactNode }) {
     complianceRequirements: tables.compliance_requirements,
     reportRenewal: async (id, note) => { try { await people.reportRenewal(id, note) } finally { await Promise.all([loadTable('compliance_items'), loadTable('notifications')]) } },
     runAlertsNow: async () => { try { return await people.runAlertsNow() } finally { await Promise.all([loadTable('compliance_items'), loadTable('notifications')]) } },
+
+    tiles: useMemo(() => [...tables.link_tiles].sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name)), [tables.link_tiles]),
+    recordTap: (tileId, context) => {
+      if (!meId) return
+      db.insert('tile_taps', { tile_id: tileId, employee_id: meId, context, tapped_at: new Date().toISOString() }).catch(() => { /* never block the link */ })
+    },
+    saveTile: async ({ id, ...fields }) => {
+      const clean = { ...fields, url: fields.url?.trim() || null, fallback_url: fields.fallback_url?.trim() || null, icon_url: fields.icon_url?.trim() || null }
+      if (id) await db.update('link_tiles', { id }, clean)
+      else await db.insert('link_tiles', clean)
+      await loadTable('link_tiles')
+    },
+    deleteTile: async (id) => { await db.remove('link_tiles', { id }); await loadTable('link_tiles') },
+    moveTile: async (id, by) => {
+      const list = [...tables.link_tiles].sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name))
+      const i = list.findIndex(t => t.id === id)
+      const j = i + by
+      if (i < 0 || j < 0 || j >= list.length) return
+      ;[list[i], list[j]] = [list[j], list[i]]
+      await Promise.all(list.map((t, k) => t.sort_order === (k + 1) * 10 ? null : db.update('link_tiles', { id: t.id }, { sort_order: (k + 1) * 10 })))
+      await loadTable('link_tiles')
+    },
+    loadTileTaps: (since) => db.select<TileTap>('tile_taps', { gte: { tapped_at: since } }),
 
     timeOff: tables.time_off_requests,
     requestTimeOff: async (a, b, k, n) => { try { await people.requestTimeOff(a, b, k, n) } finally { await Promise.all([loadTable('time_off_requests'), loadTable('notifications')]) } },

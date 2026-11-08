@@ -27,6 +27,7 @@ Each one should finish with "Success". They're safe to run again if you're unsur
 5. `supabase/migrations/004_shift_board.sql` — shift board: give-ups, trades, sick calls, approvals
 6. `supabase/migrations/005_bidding_and_sheet_sync.sql` — line bidding + Google Sheet sync fields
 7. `supabase/migrations/006_compliance_and_time_off.sql` — certifications (expiration tracking) + time off
+8. `supabase/migrations/007_link_tiles.sql` — linked tiles on the Home screen (starts with empty links)
 
 > **Already running the app?** Do the same: run 001 then 002. Your existing drivers become
 > employees automatically, but **nobody can sign in until they have a phone number on file**
@@ -252,6 +253,27 @@ To remove someone, turn off **Active** (their history is kept).
 
 To add a growth line mid-period, create it under **Admin → Lines** (category Growth), then use
 **Offer by seniority** on it. To make it permanent, **Convert to core**.
+
+## Linked tiles (Home screen)
+
+Drivers open the app to a **Home** tab: today's shift with its buttons (Clock in, Today's rides,
+Pre-trip), anything that needs attention (bidding, certifications, trade offers), and a list of
+links to the other systems.
+
+The starter tiles (Bambi, pre-trip in Bambi, BBSI time clock, Pathway, handbook, call dispatch,
+accident instructions, repair quotes) have **no links yet**. Tapping one says "This link isn't set
+up yet. Ask the office." To fill them in: **Admin → Linked tiles** → tap a tile → paste the link →
+Save. You can also:
+
+- choose who sees each tile (drivers, attendants, dispatch, admins),
+- give it a button on today's shift card ("Clock in"),
+- add a fallback link (website or app store) for when an app doesn't open,
+- add a short sign-in tip, an icon, or a real app-icon image,
+- reorder tiles and see how many people tapped each one in the last 30 days.
+
+Links can be web pages (`https://…`), phone numbers (`tel:+15305551234`), texts (`sms:…`),
+email (`mailto:…`) or app links. Test app links on both iPhone and Android: an app link from an
+installed home-screen app behaves differently on each.
 
 ## Certifications and time off
 

@@ -320,3 +320,30 @@ export interface TimeOffRequest {
   created_at: string
   updated_at: string
 }
+
+// ─── Linked tiles ─────────────────────────────────────────────────────────────
+
+export interface LinkTile {
+  id: string
+  name: string
+  icon: string
+  icon_url: string | null
+  /** null/empty = placeholder ("not set up yet") */
+  url: string | null
+  fallback_url: string | null
+  roles_visible: EmployeeRole[]
+  sort_order: number
+  help_text: string | null
+  /** Shown as a button on today's shift card when set (e.g. "Clock in"). */
+  shift_label: string | null
+  active: boolean
+  created_at?: string
+}
+
+export interface TileTap {
+  id: number
+  tile_id: string
+  employee_id: string
+  context: 'home' | 'shift'
+  tapped_at: string
+}

@@ -29,13 +29,13 @@ One mobile-first app (PWA) that is the driver's **single starting point for work
 | Dispatch alert when an open shift has no taker within 24 hours | 1 | ✅ Built (banner + daily notification) |
 | Assignment considers **hours available** | 1 | 🟡 Partly: availability days and seniority are used; weekly hour caps (e.g. "no more than 20 hrs") are only in free-text notes |
 | Time-off requests (short notice flagged; approved days become open shifts) | 1 | ✅ Built |
-| **Linked-tile home screen** (admin-editable) + links on the shift card | 1 | ⬜ Not started |
+| Linked-tile home screen (admin-editable) + links on today's shift card | 1 | ✅ Built — links are placeholders until admins fill them in |
 | Pre-trip vehicle inspection | 1 | ✅ Handled in **Bambi** — link out, don't rebuild |
 | Incident / accident reports with photos | 2 | ⬜ Not started |
 | Expiration tracking and alerts (synced from the sheet's Due Dates + Requirements tabs) | 2 | ✅ Built |
 | Pathway integration ("X trainings due") | 2 | ⬜ Not started |
 | Fuel receipt photos tagged to van | 2 | ⬜ Not started |
-| Tile tap tracking | 2 | ⬜ Not started |
+| Tile tap tracking | 2 | ✅ Built (taps and people per tile, last 30 days) |
 | Native ride view | 3 | Parked |
 | Native time clock | Last / maybe never | Parked |
 
@@ -88,6 +88,7 @@ _Note: the scheduling work (shift scheduling, shift board, line bidding) was bui
 
 ## Decision log
 - **2026-11-07:** Chose "one front door" hub model: native features for what we own, linked tiles for Bambi, payroll time clock, Pathway, and other tools. Decided not to rebuild ride management or payroll timekeeping for now.
+- **2026-11-07:** Linked tiles built with empty placeholder links; admins add the real Bambi, BBSI, Pathway, handbook and dispatch links in the app.
 - **2026-11-07:** Pre-trip inspections stay in Bambi (already in use there); the app links to it instead of rebuilding.
 - **2026-11-07:** Expiration tracking uses the sheet's Due Dates tab as the source of truth (synced, read-only in the app). Reminders at 60 / 30 / 7 days and weekly once overdue; drivers report renewals in the app, admins update the sheet.
 - **2026-11-07:** Time off: requested in the app, approved by dispatch; under 14 days' notice is flagged, not blocked; approved days' shifts become open shifts automatically.

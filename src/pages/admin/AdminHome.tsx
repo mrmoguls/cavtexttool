@@ -10,9 +10,11 @@ import { AdminCoverage } from './AdminCoverage'
 import { AdminSchedule } from './AdminSchedule'
 import { AdminBidding } from './AdminBidding'
 import { AdminCertifications } from './AdminCertifications'
-import { Users, Clock, Rows3, CalendarCheck, ChevronRight, CalendarRange, Gavel, BadgeCheck } from 'lucide-react'
+import { AdminTiles } from './AdminTiles'
+import { isSetUp } from '../../components/tiles/Tiles'
+import { Users, Clock, Rows3, CalendarCheck, ChevronRight, CalendarRange, Gavel, BadgeCheck, LayoutGrid } from 'lucide-react'
 
-type Section = 'menu' | 'employees' | 'blocks' | 'lines' | 'coverage' | 'schedule' | 'bidding' | 'certs'
+type Section = 'menu' | 'employees' | 'blocks' | 'lines' | 'coverage' | 'schedule' | 'bidding' | 'certs' | 'tiles'
 
 export function AdminHome() {
   const [section, setSection] = useState<Section>('menu')
@@ -31,6 +33,7 @@ export function AdminHome() {
   if (section === 'schedule') return <AdminSchedule onBack={back} />
   if (section === 'bidding') return <AdminBidding onBack={back} />
   if (section === 'certs') return <AdminCertifications onBack={back} />
+  if (section === 'tiles') return <AdminTiles onBack={back} />
   if (section === 'lines') return <AdminLines onBack={back} onOffer={() => setSection('bidding')} />
 
   const activeEmployees = data.employees.filter(e => e.active)
@@ -96,6 +99,16 @@ export function AdminHome() {
         title="Lines"
         subtitle={`${data.lines.filter(l => l.active).length} active · ${openLines} without a holder`}
         onClick={() => setSection('lines')}
+      />
+      <MenuCard
+        icon={<LayoutGrid size={20} />}
+        title="Linked tiles"
+        subtitle={(() => {
+          const need = data.tiles.filter(t => t.active && !isSetUp(t)).length
+          return need ? `${need} of ${data.tiles.filter(t => t.active).length} need a link` : `${data.tiles.filter(t => t.active).length} links on everyone's Home screen`
+        })()}
+        alert={data.tiles.some(t => t.active && !isSetUp(t))}
+        onClick={() => setSection('tiles')}
       />
       <MenuCard
         icon={<Clock size={20} />}

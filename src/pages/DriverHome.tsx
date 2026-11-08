@@ -9,10 +9,11 @@ import { TabBar } from '../components/ui/TabBar'
 import { EmptyState } from '../components/ui/EmptyState'
 import { DriverMessages } from './DriverMessages'
 import { DriverSchedule } from './driver/DriverSchedule'
+import { DriverToday } from './driver/DriverToday'
 import { DriverBoard, useTradeOffers } from './driver/DriverBoard'
 import { Notifications, BellButton } from './Notifications'
 import type { Employee } from '../types'
-import { Bell, MessageSquare, Megaphone, CheckCircle, Play, CalendarDays, Repeat } from 'lucide-react'
+import { Bell, MessageSquare, Megaphone, CheckCircle, Play, CalendarDays, Repeat, House } from 'lucide-react'
 
 interface DriverHomeProps {
   driver: Employee
@@ -22,7 +23,7 @@ interface DriverHomeProps {
 }
 
 export function DriverHome({ driver, onSignOut, onSwitch }: DriverHomeProps) {
-  const [tab, setTab] = useState<'schedule' | 'board' | 'feed' | 'messages'>('schedule')
+  const [tab, setTab] = useState<'home' | 'schedule' | 'board' | 'feed' | 'messages'>('home')
   const [showNotifications, setShowNotifications] = useState(false)
   const [pushEnabled, setPushEnabled] = useState(false)
   const [acknowledging, setAcknowledging] = useState<string | null>(null)
@@ -53,6 +54,7 @@ export function DriverHome({ driver, onSignOut, onSwitch }: DriverHomeProps) {
   })
 
   const tabs = [
+    { key: 'home', label: 'Home', icon: <House size={20} /> },
     { key: 'schedule', label: 'Schedule', icon: <CalendarDays size={20} /> },
     { key: 'board', label: 'Board', icon: <Repeat size={20} />, badge: tradeOffers.length },
     { key: 'feed', label: 'News', icon: <Megaphone size={20} />, badge: pendingAcks.length },
@@ -79,6 +81,8 @@ export function DriverHome({ driver, onSignOut, onSwitch }: DriverHomeProps) {
       <div className="flex-1 overflow-hidden flex flex-col">
         {showNotifications ? (
           <Notifications onBack={() => setShowNotifications(false)} />
+        ) : tab === 'home' ? (
+          <DriverToday driver={driver} onOpenBoard={() => setTab('board')} onMessageDispatch={() => setTab('messages')} />
         ) : tab === 'schedule' ? (
           <DriverSchedule driver={driver} onMessageDispatch={() => setTab('messages')} />
         ) : tab === 'board' ? (
