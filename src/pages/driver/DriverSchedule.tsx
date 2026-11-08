@@ -11,6 +11,7 @@ import { ScrollBody, Segmented, SectionLabel, SubHeader } from '../../components
 import type { Employee, Shift } from '../../types'
 import { CalendarDays, ChevronLeft, ChevronRight, Clock } from 'lucide-react'
 import { ShiftActions } from './ShiftActions'
+import { ConfirmStartCard, ConfirmedNote } from '../../components/schedule/ConfirmStart'
 import { TimeOff, rangeText } from './TimeOff'
 import { Button } from '../../components/ui/Button'
 import { Plane } from 'lucide-react'
@@ -220,7 +221,10 @@ export function ShiftDetail({ shift, onBack, onMessageDispatch }: { shift: Shift
             <p className="text-lg font-semibold">{shiftTimeLabel(shift, block)}</p>
           </div>
           <p className="text-sm text-[#6B7A99]">{Number(shift.target_hours)} paid hours target{line ? ` · Line ${line.code}` : ''}</p>
+          {shift.first_pickup_time && <p className="text-sm text-[#1B2E6B]">First pickup: {formatTime(shift.first_pickup_time)}</p>}
+          <ConfirmedNote shift={shift} />
         </Card>
+        {shift.start_time && shift.start_posted_at && !shift.start_confirmed_at && shift.status === 'scheduled' && shift.date >= todayISO() && <ConfirmStartCard shift={shift} />}
         <Card className="space-y-2">
           <p className="text-xs font-semibold text-[#6B7A99] uppercase tracking-wide">What to expect</p>
           {blockInstructions(block, { startTime: shift.start_time, deadline }).map(t => (

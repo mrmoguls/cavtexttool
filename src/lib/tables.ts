@@ -24,6 +24,8 @@ export type TableName =
   | 'time_off_requests'
   | 'link_tiles'
   | 'tile_taps'
+  | 'bambi_weeks'
+  | 'bambi_changes'
 
 export const PRIMARY_KEYS: Record<TableName, string> = {
   employees: 'id',
@@ -51,6 +53,8 @@ export const PRIMARY_KEYS: Record<TableName, string> = {
   time_off_requests: 'id',
   link_tiles: 'id',
   tile_taps: 'id',
+  bambi_weeks: 'week_start',
+  bambi_changes: 'id',
 }
 
 /** Tables the database audit trigger records (mirrored by the demo store). */

@@ -1,7 +1,8 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { db, type TableName } from './db'
 import { useAuth } from './auth'
-import { addDays, assignmentConflicts, formatDate, formatTime, generateShifts, todayISO } from './scheduling'
+import { addDays, assignmentConflicts, formatDate, generateShifts, startMessage, todayISO } from './scheduling'
+import { isDemoMode, supabase } from './supabase'
 import * as bidding from './bidding-actions'
 import * as people from './people-actions'
 import type { SheetValues, SyncPlan } from './sheet-sync'
@@ -11,6 +12,7 @@ import type {
   EmployeeContact, Line, LineAssignment, LineDay, Message, Shift, AppNotification, ShiftRequest,
   BidPeriod, BidPeriodLine, BidOptin, Bid, BidResult,
   ComplianceItem, ComplianceRequirement, TimeOffKind, TimeOffRequest, LinkTile, TileTap,
+  BambiWeek, BambiChange,
 } from '../types'
 
 const TABLES: TableName[] = [
@@ -19,6 +21,7 @@ const TABLES: TableName[] = [
   'shifts', 'notifications', 'shift_requests',
   'bid_periods', 'bid_period_lines', 'bid_optins', 'bids', 'bid_results',
   'compliance_requirements', 'compliance_items', 'time_off_requests', 'link_tiles',
+  'bambi_weeks', 'bambi_changes',
 ]
 
 /** How far back shifts are loaded (the roster/schedule look ahead from today). */
@@ -49,6 +52,8 @@ type Tables = {
   compliance_items: ComplianceItem[]
   time_off_requests: TimeOffRequest[]
   link_tiles: LinkTile[]
+  bambi_weeks: BambiWeek[]
+  bambi_changes: BambiChange[]
 }
 
 const EMPTY: Tables = {
@@ -57,6 +62,7 @@ const EMPTY: Tables = {
   shifts: [], notifications: [], shift_requests: [],
   bid_periods: [], bid_period_lines: [], bid_optins: [], bids: [], bid_results: [],
   compliance_requirements: [], compliance_items: [], time_off_requests: [], link_tiles: [],
+  bambi_weeks: [], bambi_changes: [],
 }
 
 export type EmployeeDraft = Omit<Employee, 'id' | 'created_at' | 'auth_user_id' | 'push_subscription'> & { id?: string }
@@ -112,7 +118,18 @@ interface DataAPI {
   /** Last date shifts have been generated through (null = never). */
   generatedThrough: string | null
   generateSchedule: (from: string, to: string, opts: { rebuild: boolean; createdBy: string | null }) => Promise<{ added: number; removed: number }>
-  setShiftStart: (shift: Shift, time: string | null, postedBy: string | null) => Promise<void>
+  setShiftStart: (shift: Shift, time: string | null, postedBy: string | null, firstPickup?: string | null) => Promise<void>
+  /** Driver confirms their posted start time. */
+  confirmStart: (shiftId: string) => Promise<void>
+  /** Dispatch re-sends the start-time notification to someone who hasn't confirmed. */
+  remindStart: (shift: Shift) => Promise<void>
+
+  // Bambi weekly checklist (dispatch)
+  bambiWeeks: BambiWeek[]
+  bambiChanges: BambiChange[]
+  markWeekEntered: (monday: string, by: string | null) => Promise<void>
+  unmarkWeek: (monday: string) => Promise<void>
+  markBambiDone: (ids: string[], by: string | null) => Promise<void>
 
   // Notifications (always your own)
   notifications: AppNotification[]
@@ -232,7 +249,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   /** Run a board action, then refresh what it touches (realtime also catches changes by others). */
   const board = async (fn: () => Promise<unknown>) => {
     try { await fn() } finally {
-      await Promise.all([loadTable('shifts'), loadTable('shift_requests'), loadTable('notifications')])
+      await Promise.all([loadTable('shifts'), loadTable('shift_requests'), loadTable('notifications'), loadTable('bambi_changes')])
     }
   }
 
@@ -447,24 +464,67 @@ export function DataProvider({ children }: { children: ReactNode }) {
       return { added: drafts.length, removed }
     },
 
-    setShiftStart: async (shift, time, postedBy) => {
+    setShiftStart: async (shift, time, postedBy, firstPickup) => {
       const wasPosted = !!shift.start_time
       await db.update('shifts', { id: shift.id }, {
         start_time: time,
+        first_pickup_time: firstPickup ?? null,
         start_posted_at: time ? new Date().toISOString() : null,
         start_posted_by: time ? postedBy : null,
+        start_confirmed_at: null, // a new time needs a new confirmation
       })
       if (time && shift.employee_id) {
+        const day = shift.date === addDays(todayISO(), 1) ? 'Tomorrow' : formatDate(shift.date)
         await db.insert('notifications', {
           employee_id: shift.employee_id,
           kind: wasPosted ? 'am_start_changed' : 'am_start_posted',
-          title: `${wasPosted ? 'Start time changed' : 'Start time'} for ${formatDate(shift.date)}: ${formatTime(time)}`,
-          body: `Report at ${formatTime(time)} and work until your assigned trips are complete.`,
+          title: `${wasPosted ? 'Changed — ' : ''}${day}: ${startMessage(time, firstPickup)}`,
+          body: 'Tap Confirm on your Home screen so dispatch knows you’re on.',
           shift_id: shift.id,
           read_at: null,
         })
       }
       await Promise.all([loadTable('shifts'), loadTable('notifications')])
+    },
+
+    confirmStart: async (shiftId) => {
+      if (!isDemoMode) {
+        const { error } = await supabase.rpc('confirm_shift_start', { p_shift: shiftId })
+        if (error) throw new Error(error.message)
+      } else {
+        const s = tables.shifts.find(x => x.id === shiftId)
+        if (!s || s.employee_id !== meId || s.status !== 'scheduled') throw new Error("This isn't your shift.")
+        if (!s.start_time || !s.start_posted_at) throw new Error("Your start time hasn't been posted yet.")
+        await db.update('shifts', { id: shiftId }, { start_confirmed_at: new Date().toISOString() })
+      }
+      await loadTable('shifts')
+    },
+
+    remindStart: async (shift) => {
+      if (!shift.employee_id || !shift.start_time) return
+      const day = shift.date === addDays(todayISO(), 1) ? 'Tomorrow' : formatDate(shift.date)
+      await db.insert('notifications', {
+        employee_id: shift.employee_id, kind: 'start_reminder',
+        title: `Please confirm — ${day}: ${startMessage(shift.start_time, shift.first_pickup_time)}`,
+        body: 'Tap Confirm on your Home screen so dispatch knows you’re on.', shift_id: shift.id, read_at: null,
+      })
+      await loadTable('notifications')
+    },
+
+    bambiWeeks: tables.bambi_weeks,
+    bambiChanges: useMemo(() => [...tables.bambi_changes].sort((a, b) => a.date.localeCompare(b.date) || a.created_at.localeCompare(b.created_at)), [tables.bambi_changes]),
+    markWeekEntered: async (monday, by) => {
+      await db.upsert('bambi_weeks', { week_start: monday, entered_at: new Date().toISOString(), entered_by: by })
+      await loadTable('bambi_weeks')
+    },
+    unmarkWeek: async (monday) => {
+      await db.remove('bambi_weeks', { week_start: monday })
+      await loadTable('bambi_weeks')
+    },
+    markBambiDone: async (ids, by) => {
+      const now = new Date().toISOString()
+      await Promise.all(ids.map(id => db.update('bambi_changes', { id }, { done_at: now, done_by: by })))
+      await loadTable('bambi_changes')
     },
 
     notifications: useMemo(

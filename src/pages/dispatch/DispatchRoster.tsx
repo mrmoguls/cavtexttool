@@ -13,7 +13,7 @@ import type { Block, CrewRole } from '../../types'
 
 type Day = 'today' | 'tomorrow' | 'pick'
 
-export function DispatchRoster() {
+export function DispatchRoster({ onOpenBambi }: { onOpenBambi?: () => void } = {}) {
   const data = useData()
   const today = todayISO()
   const [day, setDay] = useState<Day>('today')
@@ -65,6 +65,9 @@ export function DispatchRoster() {
             </a>
           ))}
         </div>
+      )}
+      {onOpenBambi && (
+        <Button fullWidth variant="secondary" className="no-print" onClick={onOpenBambi}>Bambi week — set up next week / see changes</Button>
       )}
       <div className="no-print space-y-3">
         <Segmented

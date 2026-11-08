@@ -54,10 +54,14 @@ body {
 .safe-top { padding-top: env(safe-area-inset-top); }
 .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
 
+/* Main screens fill exactly one screen: the top bar and bottom tabs stay put, the middle scrolls. */
+.app-shell { height: 100vh; height: 100dvh; }
+
 /* Printing the dispatch roster: hide app chrome, keep the cards. */
 @media print {
   .no-print { display: none !important; }
   body, #root { background: #FFFFFF !important; }
   .scroll-area { overflow: visible !important; }
+  .app-shell, .app-main { height: auto !important; overflow: visible !important; }
   .break-inside-avoid { break-inside: avoid; }
 }

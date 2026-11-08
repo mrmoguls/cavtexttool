@@ -135,21 +135,20 @@ export function demoTimeOff(): TimeOffRequest[] {
   }]
 }
 
-// ─── Linked tiles (same starters as migration 007; links left empty on purpose) ──
+// ─── Linked tiles (same starters as migration 007; unknown links left empty) ──
 
 export function demoTiles(): import('../types').LinkTile[] {
   const all = ['driver', 'attendant', 'dispatcher', 'admin'] as const
-  const t = (i: number, name: string, icon: string, roles: readonly string[], help: string | null, shift: string | null) => ({
-    id: `tile-${i}`, name, icon, icon_url: null, url: null, fallback_url: null,
+  const t = (i: number, name: string, icon: string, roles: readonly string[], help: string | null, shift: string | null, url: string | null = null) => ({
+    id: `tile-${i}`, name, icon, icon_url: null, url, fallback_url: null,
     roles_visible: [...roles] as import('../types').EmployeeRole[], sort_order: i * 10, help_text: help, shift_label: shift, active: true,
   })
   return [
     t(1, 'Bambi – Your Rides', 'car', all, 'Sign in with your Bambi driver login. Stay signed in on this phone.', "Today's rides"),
-    t(2, 'Pre-trip inspection (Bambi)', 'clipboard-check', ['driver'], 'Do your pre-trip in Bambi before your first pickup.', 'Pre-trip'),
-    t(3, 'Time Clock (BBSI)', 'clock', all, 'Clock in and out for payroll.', 'Clock in'),
-    t(4, 'Pathway Training', 'graduation-cap', all, 'Required trainings (HIPAA, FWA, bloodborne pathogens …).', null),
-    t(5, 'Employee Handbook (2027)', 'book-open', all, null, null),
-    t(6, 'Call Dispatch', 'phone', ['driver', 'attendant'], null, null),
+    t(3, 'Time Clock (BBSI)', 'clock', all, 'Clock in and out for payroll.', 'Clock in', 'https://bbsitimenet.cloud.centralservers.com/'),
+    t(4, 'Coggno Training', 'graduation-cap', all, 'Required trainings (HIPAA, FWA, bloodborne pathogens …).', null, 'https://login.coggno.com/cas/login?service=https%3A%2F%2Fcoggno.com%2Fv2%2Faccount'),
+    t(5, 'Employee Handbook (2027)', 'book-open', all, null, null, 'https://docs.google.com/document/d/1zlem6GIks0G6xGtXehouoURLarVEWYsM9Jr8mDMb3RM/edit?usp=sharing'),
+    t(6, 'Call Dispatch', 'phone', ['driver', 'attendant'], null, null, 'tel:+15302214826'),
     t(7, 'Accident / Emergency Instructions', 'triangle-alert', ['driver', 'attendant'], 'What to do at the scene.', null),
     t(8, 'Repair Quote Review ("Ask Ryan")', 'wrench', ['dispatcher', 'admin'], 'For staff who handle shop quotes.', null),
   ]

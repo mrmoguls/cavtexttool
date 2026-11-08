@@ -178,6 +178,10 @@ export interface Shift {
   target_hours: number
   notes: string | null
   opened_at?: string | null
+  /** The day's first pickup; the start is normally 30 minutes before. */
+  first_pickup_time?: string | null
+  /** Driver tapped Confirm on their posted start time (cleared when the time or driver changes). */
+  start_confirmed_at?: string | null
   created_by?: string | null
   created_at?: string
 }
@@ -346,4 +350,22 @@ export interface TileTap {
   employee_id: string
   context: 'home' | 'shift'
   tapped_at: string
+}
+
+// ─── Bambi weekly checklist ───────────────────────────────────────────────────
+
+export interface BambiWeek {
+  week_start: string // Monday
+  entered_at: string
+  entered_by: string | null
+}
+
+export interface BambiChange {
+  id: string
+  shift_id: string | null
+  date: string
+  summary: string
+  created_at: string
+  done_at: string | null
+  done_by: string | null
 }

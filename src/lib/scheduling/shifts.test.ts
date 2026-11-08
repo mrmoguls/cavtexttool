@@ -93,3 +93,14 @@ describe('time off in generation', () => {
     expect(out.map(s => s.date)).toEqual(['2026-11-09', '2026-11-12', '2026-11-13'])
   })
 })
+
+import { startFromPickup, startMessage } from '.'
+describe('start from first pickup', () => {
+  it('30 minutes before, wording', () => {
+    expect(startFromPickup('08:30')).toBe('08:00')
+    expect(startFromPickup('08:15')).toBe('07:45')
+    expect(startFromPickup('00:10')).toBe('23:40')
+    expect(startMessage('07:30', '08:00')).toBe('start 7:30 am for an 8:00 am pickup')
+    expect(startMessage('07:30', null)).toBe('start 7:30 am')
+  })
+})

@@ -3,13 +3,17 @@ import { useData } from '../lib/data-context'
 import { Card } from '../components/ui/Card'
 import { EmptyState } from '../components/ui/EmptyState'
 import { ScrollBody, SubHeader } from '../components/ui/Form'
-import { Bell } from 'lucide-react'
+import { Bell, ChevronRight } from 'lucide-react'
 
-export function Notifications({ onBack }: { onBack: () => void }) {
+/** Something waiting on you elsewhere in the app (the same things that put a red bubble on a tab). */
+export interface AttentionItem { key: string; label: string; count: number; onOpen: () => void }
+
+export function Notifications({ onBack, attention = [] }: { onBack: () => void; attention?: AttentionItem[] }) {
   const data = useData()
   const { notifications, markNotificationsRead } = data
   const unreadIds = notifications.filter(n => !n.read_at).map(n => n.id)
   const key = unreadIds.join(',')
+  const waiting = attention.filter(a => a.count > 0)
   const markRef = useRef(markNotificationsRead)
   markRef.current = markNotificationsRead
 
@@ -22,9 +26,22 @@ export function Notifications({ onBack }: { onBack: () => void }) {
     <>
       <SubHeader title="Notifications" onBack={onBack} />
       <ScrollBody>
-        {notifications.length === 0 && (
+        {waiting.length > 0 && (
+          <Card className="space-y-1 border-2 border-[#CC2A2A]/30">
+            <p className="font-semibold text-[#0B1A5C]">Needs your attention</p>
+            {waiting.map(a => (
+              <button key={a.key} onClick={a.onOpen} className="w-full flex items-center gap-3 py-2 border-t border-[#D8DFEF] first-of-type:border-t-0 text-left">
+                <span className="bg-[#CC2A2A] text-white text-xs font-bold rounded-full min-w-5 h-5 px-1.5 flex items-center justify-center">{a.count}</span>
+                <span className="flex-1 text-sm font-medium text-[#1B2E6B]">{a.label}</span>
+                <ChevronRight size={16} className="text-[#6B7A99]" />
+              </button>
+            ))}
+          </Card>
+        )}
+        {notifications.length === 0 && waiting.length === 0 && (
           <EmptyState icon={<Bell />} title="Nothing yet" body="Start times, schedule changes and shift updates will show up here." />
         )}
+        {notifications.length > 0 && waiting.length > 0 && <p className="text-xs font-semibold uppercase tracking-wide text-[#6B7A99] px-1 pt-1">Notifications</p>}
         {notifications.map(n => (
           <Card key={n.id}>
             <div className="flex items-start gap-3">
@@ -46,7 +63,7 @@ export function Notifications({ onBack }: { onBack: () => void }) {
 
 export function BellButton({ count, onClick }: { count: number; onClick: () => void }) {
   return (
-    <button onClick={onClick} className="relative p-1.5 rounded-lg text-white/80 hover:text-white" aria-label={count ? `Notifications, ${count} unread` : 'Notifications'}>
+    <button onClick={onClick} className="relative p-1.5 rounded-lg text-white/80 hover:text-white" aria-label={count ? `Notifications, ${count} need attention` : 'Notifications'}>
       <Bell size={20} />
       {count > 0 && (
         <span className="absolute -top-0.5 -right-0.5 bg-[#CC2A2A] text-white text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
@@ -55,4 +72,9 @@ export function BellButton({ count, onClick }: { count: number; onClick: () => v
       )}
     </button>
   )
+}
+
+/** Bell total: unread notifications plus everything waiting elsewhere, so the top red dot matches the tab bubbles. */
+export function bellCount(unread: number, attention: AttentionItem[]) {
+  return unread + attention.reduce((n, a) => n + Math.max(0, a.count), 0)
 }

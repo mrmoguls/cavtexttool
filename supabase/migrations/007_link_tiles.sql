@@ -1,5 +1,5 @@
 -- 007 — Linked tiles: the driver's home screen of links to other systems (Bambi, time clock,
--- Pathway, handbook, call dispatch …), edited by admins, with tap tracking.
+-- Coggno training, handbook, call dispatch …), edited by admins, with tap tracking.
 -- Run AFTER 006_compliance_and_time_off.sql. Safe to re-run.
 
 create table if not exists link_tiles (
@@ -52,17 +52,16 @@ do $$ begin
   alter publication supabase_realtime add table link_tiles;
 exception when duplicate_object then null; end $$;
 
--- Starter tiles from the roadmap. Links are left empty on purpose: admins fill them in under
+-- Starter tiles from the roadmap. Links not known yet are left empty: admins fill them in under
 -- Admin → Linked tiles. Until then, tapping one says it isn't set up yet.
-insert into link_tiles (name, icon, roles_visible, sort_order, help_text, shift_label)
+insert into link_tiles (name, icon, url, roles_visible, sort_order, help_text, shift_label)
 select * from (values
-  ('Bambi – Your Rides', 'car', '{driver,attendant,dispatcher,admin}'::text[], 10, 'Sign in with your Bambi driver login. Stay signed in on this phone.', 'Today''s rides'),
-  ('Pre-trip inspection (Bambi)', 'clipboard-check', '{driver}'::text[], 20, 'Do your pre-trip in Bambi before your first pickup.', 'Pre-trip'),
-  ('Time Clock (BBSI)', 'clock', '{driver,attendant,dispatcher,admin}'::text[], 30, 'Clock in and out for payroll.', 'Clock in'),
-  ('Pathway Training', 'graduation-cap', '{driver,attendant,dispatcher,admin}'::text[], 40, 'Required trainings (HIPAA, FWA, bloodborne pathogens …).', null),
-  ('Employee Handbook (2027)', 'book-open', '{driver,attendant,dispatcher,admin}'::text[], 50, null, null),
-  ('Call Dispatch', 'phone', '{driver,attendant}'::text[], 60, null, null),
-  ('Accident / Emergency Instructions', 'triangle-alert', '{driver,attendant}'::text[], 70, 'What to do at the scene.', null),
-  ('Repair Quote Review ("Ask Ryan")', 'wrench', '{dispatcher,admin}'::text[], 80, 'For staff who handle shop quotes.', null)
-) as v(name, icon, roles_visible, sort_order, help_text, shift_label)
+  ('Bambi – Your Rides', 'car', null::text, '{driver,attendant,dispatcher,admin}'::text[], 10, 'Sign in with your Bambi driver login. Stay signed in on this phone.', 'Today''s rides'),
+  ('Time Clock (BBSI)', 'clock', 'https://bbsitimenet.cloud.centralservers.com/', '{driver,attendant,dispatcher,admin}'::text[], 30, 'Clock in and out for payroll.', 'Clock in'),
+  ('Coggno Training', 'graduation-cap', 'https://login.coggno.com/cas/login?service=https%3A%2F%2Fcoggno.com%2Fv2%2Faccount', '{driver,attendant,dispatcher,admin}'::text[], 40, 'Required trainings (HIPAA, FWA, bloodborne pathogens …).', null),
+  ('Employee Handbook (2027)', 'book-open', 'https://docs.google.com/document/d/1zlem6GIks0G6xGtXehouoURLarVEWYsM9Jr8mDMb3RM/edit?usp=sharing', '{driver,attendant,dispatcher,admin}'::text[], 50, null, null),
+  ('Call Dispatch', 'phone', 'tel:+15302214826', '{driver,attendant}'::text[], 60, null, null),
+  ('Accident / Emergency Instructions', 'triangle-alert', null, '{driver,attendant}'::text[], 70, 'What to do at the scene.', null),
+  ('Repair Quote Review ("Ask Ryan")', 'wrench', null, '{dispatcher,admin}'::text[], 80, 'For staff who handle shop quotes.', null)
+) as v(name, icon, url, roles_visible, sort_order, help_text, shift_label)
 where not exists (select 1 from link_tiles);

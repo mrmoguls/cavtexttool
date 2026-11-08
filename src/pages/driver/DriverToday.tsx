@@ -9,6 +9,7 @@ import { CertificationsCard, MyCertifications } from './MyCertifications'
 import { ShiftDetail } from './DriverSchedule'
 import { useTradeOffers } from './DriverBoard'
 import type { BidPeriod, Employee, Shift } from '../../types'
+import { ConfirmStartCard, ConfirmedNote, useStartsToConfirm } from '../../components/schedule/ConfirmStart'
 import { ChevronRight, Repeat } from 'lucide-react'
 
 /** The driver's starting point: today's shift with its links, anything that needs attention, and all the links. */
@@ -20,6 +21,7 @@ export function DriverToday({ driver, onOpenBoard, onMessageDispatch }: { driver
   const [openShift, setOpenShift] = useState<Shift | null>(null)
   const tiles = useMyTiles()
   const offers = useTradeOffers(driver.id)
+  const toConfirm = useStartsToConfirm(driver.id)
 
   if (sub === 'certs') return <MyCertifications driver={driver} onBack={() => setSub(null)} />
   if (bidding) {
@@ -41,6 +43,7 @@ export function DriverToday({ driver, onOpenBoard, onMessageDispatch }: { driver
   return (
     <ScrollBody>
       <p className="text-sm text-[#6B7A99] px-1">{formatDate(today)}</p>
+      {toConfirm.map(s => <ConfirmStartCard key={`c-${s.id}`} shift={s} />)}
 
       {todays.length > 0 ? todays.map(s => <TodayCard key={s.id} shift={s} onOpen={() => setOpenShift(s)} />) : (
         <Card className="space-y-1">
@@ -90,6 +93,7 @@ function TodayCard({ shift, onOpen }: { shift: Shift; onOpen: () => void }) {
         <div className="flex-1 min-w-0">
           <p className="text-xs font-semibold text-[#6B7A99] uppercase tracking-wide">Today · {block.name}{shift.role === 'attendant' ? ' · Attendant' : ''}</p>
           <p className={`text-lg font-semibold ${waiting ? 'text-[#CC2A2A]' : 'text-[#0B1A5C]'}`}>{shiftTimeLabel(shift, block)}</p>
+          <ConfirmedNote shift={shift} />
         </div>
         <ChevronRight size={18} className="text-[#6B7A99]" />
       </button>

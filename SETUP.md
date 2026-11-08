@@ -28,6 +28,7 @@ Each one should finish with "Success". They're safe to run again if you're unsur
 6. `supabase/migrations/005_bidding_and_sheet_sync.sql` — line bidding + Google Sheet sync fields
 7. `supabase/migrations/006_compliance_and_time_off.sql` — certifications (expiration tracking) + time off
 8. `supabase/migrations/007_link_tiles.sql` — linked tiles on the Home screen (starts with empty links)
+9. `supabase/migrations/008_start_confirmations_and_bambi.sql` — start-time confirmations + weekly Bambi checklist
 
 > **Already running the app?** Do the same: run 001 then 002. Your existing drivers become
 > employees automatically, but **nobody can sign in until they have a phone number on file**
@@ -228,6 +229,31 @@ To remove someone, turn off **Active** (their history is kept).
 
 ---
 
+## Working with Bambi
+
+Bambi's API can't receive schedules, so Amber enters teams in Bambi. CAV Hub keeps that to once a
+week plus a short list of changes:
+
+1. **Weekly (e.g. Thursday): set up next week.** Dispatch → Roster → **Bambi week**. Each day lists
+   the teams (Copy puts a day on the clipboard). Build the week in Bambi (clone a day, adjust), using
+   a standard AM start. Then tap **This week is entered in Bambi**.
+2. **After that, changes come to you.** Any change to that week — sick call, approved trade or
+   pickup, time off, reassignment, posted start time — appears as **"Bambi needs N updates"** at the
+   top of dispatch. Make the change in Bambi, tap **Done**.
+
+## Start times and confirmations (replaces texting)
+
+The night before, **Dispatch → AM starts**: enter each driver's **first pickup** from Bambi; the start
+fills in 30 minutes earlier (change it if needed) → **Post**. The driver gets
+"Tomorrow: start 7:30 am for an 8:00 am pickup" and a big **Confirm** button on their Home screen.
+Dispatch sees **Waiting** / **Confirmed (time)** for each driver. Not confirmed by 7 pm
+(`start_confirm_by` in settings) → a red banner. **Remind** sends it again; **Text** opens your
+phone's messages with the same wording, for anyone who still hasn't answered. Changing a posted time
+asks the driver to confirm again.
+
+Tip: drivers who install CAV Hub to their home screen and allow notifications see these right away
+(phone push is the next setup step); until then they see them when they open the app.
+
 ## Weekly routine
 
 - **Admin → Schedule → Generate shifts** about once a month to keep four or more weeks scheduled.
@@ -256,12 +282,12 @@ To add a growth line mid-period, create it under **Admin → Lines** (category G
 
 ## Linked tiles (Home screen)
 
-Drivers open the app to a **Home** tab: today's shift with its buttons (Clock in, Today's rides,
-Pre-trip), anything that needs attention (bidding, certifications, trade offers), and a list of
+Drivers open the app to a **Home** tab: today's shift with its buttons (Clock in, Today's rides), anything that needs attention (bidding, certifications, trade offers), and a list of
 links to the other systems.
 
-The starter tiles (Bambi, pre-trip in Bambi, BBSI time clock, Pathway, handbook, call dispatch,
-accident instructions, repair quotes) have **no links yet**. Tapping one says "This link isn't set
+The starter tiles are Bambi, BBSI time clock, Coggno training, handbook, call dispatch, accident
+instructions and repair quotes. The **BBSI time clock, Coggno training, handbook and call dispatch
+links are set**; Bambi, accident instructions and repair quotes have **no links yet**. Tapping one says "This link isn't set
 up yet. Ask the office." To fill them in: **Admin → Linked tiles** → tap a tile → paste the link →
 Save. You can also:
 

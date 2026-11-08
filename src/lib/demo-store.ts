@@ -40,6 +40,8 @@ function initialTables(): Record<TableName, Row[]> {
     time_off_requests: demoTimeOff() as unknown as Row[],
     link_tiles: demoTiles() as unknown as Row[],
     tile_taps: [],
+    bambi_weeks: [],
+    bambi_changes: [],
   }
 }
 
@@ -84,6 +86,35 @@ class DemoStore {
     this.notify('audit_log')
   }
 
+  /** Mirrors track_bambi_change(): log shift changes in weeks already entered in Bambi. */
+  private trackBambi(op: 'insert' | 'update' | 'delete', before: Row | null, after: Row | null) {
+    const s = (after ?? before)!
+    const date = String(s.date)
+    const d = new Date(`${date}T12:00:00Z`)
+    d.setUTCDate(d.getUTCDate() - ((d.getUTCDay() + 6) % 7))
+    const monday = d.toISOString().slice(0, 10)
+    if (!this.tables.bambi_weeks.some(w => w.week_start === monday)) return
+    const name = (id: unknown) => (this.tables.employees.find(e => e.id === id)?.name as string) ?? 'open'
+    const block = this.tables.blocks.find(b => b.id === s.block_id)
+    const day = new Date(`${date}T12:00:00Z`).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', timeZone: 'UTC' }).replace(',', '')
+    const label = `${day} ${block?.code ?? ''}${s.role === 'attendant' ? ' attendant' : ''}`
+    let msg: string | null = null
+    if (op === 'insert') msg = `${label}: added — ${name(after!.employee_id)}`
+    else if (op === 'delete') msg = `${label}: removed (${name(before!.employee_id)})`
+    else if (after!.status === 'cancelled' && before!.status !== 'cancelled') msg = `${label}: cancelled (${name(before!.employee_id)})`
+    else if (after!.employee_id !== before!.employee_id) msg = `${label}: ${name(before!.employee_id)} → ${name(after!.employee_id)}`
+    else if (after!.start_time !== before!.start_time && after!.start_time) {
+      const [h, m] = String(after!.start_time).split(':').map(Number)
+      msg = `${label}: ${name(after!.employee_id)} starts ${h % 12 === 0 ? 12 : h % 12}:${String(m).padStart(2, '0')} ${h >= 12 ? 'pm' : 'am'}`
+    }
+    if (!msg) return
+    this.tables.bambi_changes.push({
+      id: newId('bc'), shift_id: op === 'delete' ? null : s.id, date, summary: msg,
+      created_at: new Date().toISOString(), done_at: null, done_by: null,
+    })
+    this.notify('bambi_changes')
+  }
+
   select(table: TableName, filter?: RowFilter): Row[] {
     return clone(this.tables[table].filter(r => rowMatches(r, filter)))
   }
@@ -114,6 +145,7 @@ class DemoStore {
       }
       this.tables[table].push(row)
       this.audit(table, 'insert', null, row)
+      if (table === 'shifts') this.trackBambi('insert', null, row)
       out.push(clone(row))
     }
     this.notify(table)
@@ -125,6 +157,12 @@ class DemoStore {
       if (!matches(row, match)) continue
       const before = clone(row)
       Object.assign(row, patch)
+      if (table === 'shifts') {
+        // Mirrors reset_start_confirmation(): a confirmation only counts for that time and person.
+        const changed = row.start_time !== before.start_time || row.employee_id !== before.employee_id
+        if (changed && row.start_confirmed_at === before.start_confirmed_at) row.start_confirmed_at = null
+        this.trackBambi('update', before, row)
+      }
       this.audit(table, 'update', before, row)
     }
     this.notify(table)
@@ -142,8 +180,10 @@ class DemoStore {
   remove(table: TableName, match: Row) {
     const keep: Row[] = []
     for (const row of this.tables[table]) {
-      if (matches(row, match)) this.audit(table, 'delete', row, null)
-      else keep.push(row)
+      if (matches(row, match)) {
+        this.audit(table, 'delete', row, null)
+        if (table === 'shifts') this.trackBambi('delete', row, null)
+      } else keep.push(row)
     }
     this.tables[table] = keep
     this.notify(table)

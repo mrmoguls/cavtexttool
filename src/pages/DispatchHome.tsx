@@ -11,9 +11,10 @@ import { DispatchCompose } from './DispatchCompose'
 import { DispatchThread } from './DispatchThread'
 import { AdminHome } from './admin/AdminHome'
 import { DispatchRoster } from './dispatch/DispatchRoster'
-import { DispatchRequests, usePendingCount, OpenSoonBanner } from './dispatch/DispatchRequests'
-import { Notifications, BellButton } from './Notifications'
-import { DispatchStarts, AmStartBanner, useTomorrowStarts } from './dispatch/DispatchStarts'
+import { BambiWeek, BambiBanner, useBambiUpdates } from './dispatch/BambiWeek'
+import { DispatchRequests, usePendingCount, OpenSoonBanner, useOpenSoon } from './dispatch/DispatchRequests'
+import { Notifications, BellButton, bellCount, type AttentionItem } from './Notifications'
+import { DispatchStarts, AmStartBanner, useTomorrowStarts, useUnconfirmedStarts } from './dispatch/DispatchStarts'
 import type { Announcement, Employee } from '../types'
 import { Megaphone, MessageSquare, Settings, ClipboardList, Repeat, Plus, ChevronRight, CheckCircle, Clock } from 'lucide-react'
 
@@ -26,6 +27,7 @@ interface DispatchHomeProps {
 export function DispatchHome({ onSignOut, onSwitch }: DispatchHomeProps) {
   const [tab, setTab] = useState<'roster' | 'requests' | 'starts' | 'announcements' | 'inbox' | 'admin'>('roster')
   const [showNotifications, setShowNotifications] = useState(false)
+  const [showBambi, setShowBambi] = useState(false)
   const [composing, setComposing] = useState(false)
   const [selectedAnnouncement, setSelectedAnnouncement] = useState<Announcement | null>(null)
   const [selectedDriver, setSelectedDriver] = useState<Employee | null>(null)
@@ -34,7 +36,10 @@ export function DispatchHome({ onSignOut, onSwitch }: DispatchHomeProps) {
   const { announcements, views, latestMessages, unreadDispatch } = data
   const { isAdmin } = useAuth()
   const starts = useTomorrowStarts()
+  const unconfirmed = useUnconfirmedStarts()
   const pendingRequests = usePendingCount()
+  const openSoon = useOpenSoon()
+  const bambiUpdates = useBambiUpdates()
   // Announcements and messages go to the crew (drivers + attendants).
   const drivers = data.employees.filter(e => e.active && (e.role === 'driver' || e.role === 'attendant'))
 
@@ -61,22 +66,32 @@ export function DispatchHome({ onSignOut, onSwitch }: DispatchHomeProps) {
     return <DispatchThread driver={selectedDriver} onBack={() => setSelectedDriver(null)} />
   }
 
+  const startsBadge = (starts.phase === 'warning' || starts.phase === 'overdue' ? starts.unset.length : 0) + (unconfirmed.late ? unconfirmed.waiting.length : 0)
+  const go = (t: typeof tab) => () => { setShowNotifications(false); setShowBambi(false); setTab(t) }
+  const attention: AttentionItem[] = [
+    { key: 'requests', label: 'Requests waiting for a decision', count: pendingRequests, onOpen: go('requests') },
+    { key: 'open', label: 'Open shifts within 24 hours, nobody on them', count: openSoon.length, onOpen: go('requests') },
+    { key: 'starts', label: 'AM start times to post or confirm', count: startsBadge, onOpen: go('starts') },
+    { key: 'inbox', label: 'Unread messages', count: unreadDispatch, onOpen: go('inbox') },
+    { key: 'bambi', label: 'Updates to make in Bambi', count: bambiUpdates.length, onOpen: () => { setShowNotifications(false); setShowBambi(true) } },
+  ]
+
   const tabs = [
     { key: 'roster', label: 'Roster', icon: <ClipboardList size={20} /> },
     { key: 'requests', label: 'Requests', icon: <Repeat size={20} />, badge: pendingRequests },
-    { key: 'starts', label: 'AM starts', icon: <Clock size={20} />, badge: starts.phase === 'warning' || starts.phase === 'overdue' ? starts.unset.length : 0 },
+    { key: 'starts', label: 'AM starts', icon: <Clock size={20} />, badge: startsBadge },
     { key: 'announcements', label: 'Posts', icon: <Megaphone size={20} /> },
     { key: 'inbox', label: 'Inbox', icon: <MessageSquare size={20} />, badge: unreadDispatch },
     ...(isAdmin ? [{ key: 'admin', label: 'Admin', icon: <Settings size={20} /> }] : []),
   ]
 
   return (
-    <div className="min-h-svh bg-[#EEF1F8] flex flex-col">
+    <div className="app-shell bg-[#EEF1F8] flex flex-col overflow-hidden">
       <TopBar
         title="Dispatch"
         right={
           <div className="flex items-center gap-3">
-            <BellButton count={data.unreadNotifications} onClick={() => setShowNotifications(true)} />
+            <BellButton count={bellCount(data.unreadNotifications, attention)} onClick={() => setShowNotifications(true)} />
             {onSwitch && (
               <button onClick={onSwitch} className="text-xs font-semibold text-white bg-white/15 rounded-lg px-2 py-1">My schedule</button>
             )}
@@ -87,15 +102,17 @@ export function DispatchHome({ onSignOut, onSwitch }: DispatchHomeProps) {
         }
       />
 
+      {!showBambi && <BambiBanner onOpen={() => { setShowNotifications(false); setShowBambi(true) }} />}
       {tab !== 'requests' && <OpenSoonBanner onOpen={() => { setShowNotifications(false); setTab('requests') }} />}
       {tab !== 'starts' && <AmStartBanner onOpen={() => setTab('starts')} />}
 
-      <div className="flex-1 overflow-hidden flex flex-col">
-        {showNotifications && <Notifications onBack={() => setShowNotifications(false)} />}
-        {!showNotifications && tab === 'roster' && <DispatchRoster />}
-        {!showNotifications && tab === 'requests' && <DispatchRequests />}
-        {!showNotifications && tab === 'starts' && <DispatchStarts />}
-        {!showNotifications && tab === 'announcements' && (
+      <div className="app-main flex-1 min-h-0 overflow-hidden flex flex-col">
+        {showNotifications && <Notifications onBack={() => setShowNotifications(false)} attention={attention} />}
+        {!showNotifications && showBambi && <BambiWeek onBack={() => setShowBambi(false)} />}
+        {!showNotifications && !showBambi && tab === 'roster' && <DispatchRoster onOpenBambi={() => setShowBambi(true)} />}
+        {!showNotifications && !showBambi && tab === 'requests' && <DispatchRequests />}
+        {!showNotifications && !showBambi && tab === 'starts' && <DispatchStarts />}
+        {!showNotifications && !showBambi && tab === 'announcements' && (
           <div className="flex-1 overflow-y-auto scroll-area scrollbar-hide px-4 py-4 space-y-3">
             <Button fullWidth size="lg" onClick={() => setComposing(true)}>
               <Plus size={18} /> New Announcement
@@ -157,7 +174,7 @@ export function DispatchHome({ onSignOut, onSwitch }: DispatchHomeProps) {
           </div>
         )}
 
-        {!showNotifications && tab === 'inbox' && (
+        {!showNotifications && !showBambi && tab === 'inbox' && (
           <div className="flex-1 overflow-y-auto scroll-area scrollbar-hide px-4 py-4 space-y-2">
             {drivers.length === 0 ? (
               <EmptyState icon={<MessageSquare />} title="No drivers yet" body="Add drivers in Admin → Employees." />
@@ -200,10 +217,10 @@ export function DispatchHome({ onSignOut, onSwitch }: DispatchHomeProps) {
           </div>
         )}
 
-        {!showNotifications && tab === 'admin' && isAdmin && <AdminHome />}
+        {!showNotifications && !showBambi && tab === 'admin' && isAdmin && <AdminHome />}
       </div>
 
-      <TabBar tabs={tabs} active={tab} onChange={k => { setShowNotifications(false); setTab(k as typeof tab) }} />
+      <TabBar tabs={tabs} active={tab} onChange={k => { setShowNotifications(false); setShowBambi(false); setTab(k as typeof tab) }} />
     </div>
   )
 }

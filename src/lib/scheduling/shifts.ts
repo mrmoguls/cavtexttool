@@ -207,3 +207,15 @@ export function rosterText(date: string, groups: RosterGroup[]): string {
 export function totalTargetHours(shifts: Pick<Shift, 'target_hours' | 'status'>[]): number {
   return shifts.filter(s => s.status === 'scheduled').reduce((n, s) => n + Number(s.target_hours), 0)
 }
+
+/** Start time from the first pickup (default: 30 minutes before). 'HH:MM' in, 'HH:MM' out. */
+export function startFromPickup(pickup: string, minutesBefore = 30): string {
+  const [h, m] = pickup.split(':').map(Number)
+  const t = (((h * 60 + m - minutesBefore) % 1440) + 1440) % 1440
+  return `${String(Math.floor(t / 60)).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`
+}
+
+/** "Start 7:30 am for an 8:30 am pickup" — the wording dispatch used to text. */
+export function startMessage(start: string, pickup: string | null | undefined): string {
+  return pickup ? `start ${formatTime(start)} for an ${formatTime(pickup)} pickup` : `start ${formatTime(start)}`
+}

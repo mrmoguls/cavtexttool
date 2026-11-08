@@ -11,7 +11,8 @@ import { DriverMessages } from './DriverMessages'
 import { DriverSchedule } from './driver/DriverSchedule'
 import { DriverToday } from './driver/DriverToday'
 import { DriverBoard, useTradeOffers } from './driver/DriverBoard'
-import { Notifications, BellButton } from './Notifications'
+import { Notifications, BellButton, bellCount, type AttentionItem } from './Notifications'
+import { useStartsToConfirm } from '../components/schedule/ConfirmStart'
 import type { Employee } from '../types'
 import { Bell, MessageSquare, Megaphone, CheckCircle, Play, CalendarDays, Repeat, House } from 'lucide-react'
 
@@ -33,6 +34,7 @@ export function DriverHome({ driver, onSignOut, onSwitch }: DriverHomeProps) {
   const driverViews = views.filter(v => v.driver_id === driver.id)
   const unreadMessages = data.getUnreadForDriver(driver.id)
   const tradeOffers = useTradeOffers(driver.id)
+  const toConfirm = useStartsToConfirm(driver.id)
 
   const getView = (id: string) => driverViews.find(v => v.announcement_id === id)
 
@@ -53,8 +55,16 @@ export function DriverHome({ driver, onSignOut, onSwitch }: DriverHomeProps) {
     return !v?.acknowledged_at
   })
 
+  const go = (t: typeof tab) => () => { setShowNotifications(false); setTab(t) }
+  const attention: AttentionItem[] = [
+    { key: 'confirm', label: toConfirm.length === 1 ? 'Start time to confirm' : 'Start times to confirm', count: toConfirm.length, onOpen: go('home') },
+    { key: 'board', label: tradeOffers.length === 1 ? 'Shift trade offer for you' : 'Shift trade offers for you', count: tradeOffers.length, onOpen: go('board') },
+    { key: 'feed', label: 'Announcements to acknowledge', count: pendingAcks.length, onOpen: go('feed') },
+    { key: 'messages', label: unreadMessages === 1 ? 'Unread message' : 'Unread messages', count: unreadMessages, onOpen: go('messages') },
+  ]
+
   const tabs = [
-    { key: 'home', label: 'Home', icon: <House size={20} /> },
+    { key: 'home', label: 'Home', icon: <House size={20} />, badge: toConfirm.length },
     { key: 'schedule', label: 'Schedule', icon: <CalendarDays size={20} /> },
     { key: 'board', label: 'Board', icon: <Repeat size={20} />, badge: tradeOffers.length },
     { key: 'feed', label: 'News', icon: <Megaphone size={20} />, badge: pendingAcks.length },
@@ -62,12 +72,12 @@ export function DriverHome({ driver, onSignOut, onSwitch }: DriverHomeProps) {
   ]
 
   return (
-    <div className="min-h-svh bg-[#EEF1F8] flex flex-col">
+    <div className="app-shell bg-[#EEF1F8] flex flex-col overflow-hidden">
       <TopBar
         greeting={`Good to see you, ${driver.name.split(' ')[0]}`}
         right={
           <div className="flex items-center gap-3">
-            <BellButton count={data.unreadNotifications} onClick={() => setShowNotifications(true)} />
+            <BellButton count={bellCount(data.unreadNotifications, attention)} onClick={() => setShowNotifications(true)} />
             {onSwitch && (
               <button onClick={onSwitch} className="text-xs font-semibold text-white bg-white/15 rounded-lg px-2 py-1">Dispatch</button>
             )}
@@ -78,9 +88,9 @@ export function DriverHome({ driver, onSignOut, onSwitch }: DriverHomeProps) {
         }
       />
 
-      <div className="flex-1 overflow-hidden flex flex-col">
+      <div className="app-main flex-1 min-h-0 overflow-hidden flex flex-col">
         {showNotifications ? (
-          <Notifications onBack={() => setShowNotifications(false)} />
+          <Notifications onBack={() => setShowNotifications(false)} attention={attention} />
         ) : tab === 'home' ? (
           <DriverToday driver={driver} onOpenBoard={() => setTab('board')} onMessageDispatch={() => setTab('messages')} />
         ) : tab === 'schedule' ? (
