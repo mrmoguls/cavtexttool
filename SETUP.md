@@ -115,13 +115,6 @@ Open `http://localhost:5173` — you should see the team list. Sign in as the ad
 
 ---
 
-## Step 5b: Add the logo
-
-Put the Care-A-Van logo at `public/brand/logo.png`, then run `python3 scripts/make-icons.py` to
-make the home-screen and browser icons. See `public/brand/README.md`.
-
----
-
 ## Step 6: Deploy to Netlify
 
 1. Push this repo to GitHub (or use Netlify's drag-and-drop deploy with the `dist` folder)

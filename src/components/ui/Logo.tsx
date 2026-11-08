@@ -1,47 +1,18 @@
-import { useState } from 'react'
-
-// CAV Hub logo. Uses the real Care-A-Van logo at public/brand/logo.png when it's there
-// (see public/brand/README.md); until then, a drawn shield mark.
-const LOGO_URL = `${import.meta.env.BASE_URL}brand/logo.png`
-// Remember a missing logo for the rest of the visit so every screen doesn't ask again.
-let logoMissing = false
+// CAV Hub logo: the Care-A-Van badge plus the app name.
+// src/assets/logo.png is made from brand/CareAVanLogo.jpg by scripts/make-icons.py.
+import logoUrl from '../../assets/logo.png'
 
 export function Logo({ size = 'md', onDark = false }: { size?: 'sm' | 'md' | 'lg'; onDark?: boolean }) {
-  const scale = size === 'sm' ? 28 : size === 'lg' ? 52 : 36
-  const [hasImage, setHasImage] = useState(!logoMissing)
+  const height = size === 'sm' ? 30 : size === 'lg' ? 120 : 40
 
-  const mark = hasImage ? (
-    // The logo has a white background, so it sits on a white chip in the dark header.
+  // The logo has a white background, so on the navy header it sits on a white chip.
+  const mark = (
     <span className={`inline-flex items-center justify-center rounded-lg ${onDark ? 'bg-white px-1 py-0.5' : ''}`}>
-      <img
-        src={LOGO_URL}
-        alt="Care-A-Van"
-        onError={() => { logoMissing = true; setHasImage(false) }}
-        style={{ height: size === 'lg' ? 96 : scale, width: 'auto' }}
-      />
+      <img src={logoUrl} alt="Care-A-Van" style={{ height, width: 'auto' }} />
     </span>
-  ) : (
-    <svg width={scale} height={scale * 1.1} viewBox="0 0 40 44" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="Care-A-Van">
-      <clipPath id="shield-clip">
-        <path d="M20 2L3 9V22C3 31.6 10.5 40.4 20 43C29.5 40.4 37 31.6 37 22V9L20 2Z" />
-      </clipPath>
-      <path d="M20 2L3 9V22C3 31.6 10.5 40.4 20 43C29.5 40.4 37 31.6 37 22V9L20 2Z" fill="#0B1A5C" />
-      <g clipPath="url(#shield-clip)">
-        <rect x="2" y="2" width="36" height="5" fill="#CC2A2A" />
-        <rect x="2" y="11" width="36" height="5" fill="#CC2A2A" />
-        <rect x="2" y="20" width="36" height="5" fill="#CC2A2A" />
-        <rect x="2" y="7" width="36" height="4" fill="white" />
-        <rect x="2" y="16" width="36" height="4" fill="white" />
-        <rect x="2" y="25" width="36" height="20" fill="#0B1A5C" />
-        <text x="10" y="38" fontSize="6" fill="white" textAnchor="middle">★</text>
-        <text x="20" y="34" fontSize="6" fill="white" textAnchor="middle">★</text>
-        <text x="30" y="38" fontSize="6" fill="white" textAnchor="middle">★</text>
-      </g>
-      <path d="M20 2L3 9V22C3 31.6 10.5 40.4 20 43C29.5 40.4 37 31.6 37 22V9L20 2Z" stroke="#1B2E6B" strokeWidth="1.5" fill="none" />
-    </svg>
   )
 
-  // On the sign-in screens the logo stands on its own with the app name under it.
+  // Sign-in screens: the badge on its own with the app name under it.
   if (size === 'lg') {
     return (
       <div className="flex flex-col items-center gap-2">
@@ -54,7 +25,7 @@ export function Logo({ size = 'md', onDark = false }: { size?: 'sm' | 'md' | 'lg
   return (
     <div className="flex items-center gap-2.5">
       {mark}
-      <span className={`font-extrabold tracking-tight leading-none ${onDark ? 'text-white' : 'text-[#0B1A5C]'}`} style={{ fontSize: scale * 0.5 }}>
+      <span className={`font-extrabold tracking-tight leading-none ${onDark ? 'text-white' : 'text-[#0B1A5C]'}`} style={{ fontSize: height * 0.5 }}>
         CAV <span className={onDark ? 'text-red-400' : 'text-[#CC2A2A]'}>Hub</span>
       </span>
     </div>
