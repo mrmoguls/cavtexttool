@@ -60,7 +60,7 @@ select * from (values
   ('Time Clock (BBSI)', 'clock', 'https://bbsitimenet.cloud.centralservers.com/', '{driver,attendant,dispatcher,admin}'::text[], 30, 'Clock in and out for payroll.', 'Clock in'),
   ('Coggno Training', 'graduation-cap', 'https://login.coggno.com/cas/login?service=https%3A%2F%2Fcoggno.com%2Fv2%2Faccount', '{driver,attendant,dispatcher,admin}'::text[], 40, 'Required trainings (HIPAA, FWA, bloodborne pathogens …).', null),
   ('Employee Handbook (2027)', 'book-open', 'https://docs.google.com/document/d/1zlem6GIks0G6xGtXehouoURLarVEWYsM9Jr8mDMb3RM/edit?usp=sharing', '{driver,attendant,dispatcher,admin}'::text[], 50, null, null),
-  ('Driver FAQ', 'circle-help', 'https://docs.google.com/document/d/1OMl7J2WxaU8HX5MxwnpamvW1r77s5MSnycS6kxYFc8o/edit?usp=sharing', '{driver,attendant,dispatcher,admin}'::text[], 55, 'Answers to common questions. Ask Ryan if yours isn''t there.', null),
+  ('Driver FAQ', 'circle-help', 'https://docs.google.com/document/d/1dEkED3bjbI0gqBw53WLE-3h2Z5758XINufapKwUjNTg/edit?usp=sharing', '{driver,attendant,dispatcher,admin}'::text[], 55, 'Answers to common questions. Ask Ryan if yours isn''t there.', null),
   ('Call Dispatch', 'phone', 'tel:+15302214826', '{driver,attendant}'::text[], 60, null, null),
   ('Accident / Emergency Instructions', 'triangle-alert', null, '{driver,attendant}'::text[], 70, 'What to do at the scene.', null),
   ('Repair Quote Review ("Ask Ryan")', 'wrench', null, '{dispatcher,admin}'::text[], 80, 'For staff who handle shop quotes.', null)

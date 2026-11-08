@@ -148,7 +148,7 @@ export function demoTiles(): import('../types').LinkTile[] {
     t(3, 'Time Clock (BBSI)', 'clock', all, 'Clock in and out for payroll.', 'Clock in', 'https://bbsitimenet.cloud.centralservers.com/'),
     t(4, 'Coggno Training', 'graduation-cap', all, 'Required trainings (HIPAA, FWA, bloodborne pathogens …).', null, 'https://login.coggno.com/cas/login?service=https%3A%2F%2Fcoggno.com%2Fv2%2Faccount'),
     t(5, 'Employee Handbook (2027)', 'book-open', all, null, null, 'https://docs.google.com/document/d/1zlem6GIks0G6xGtXehouoURLarVEWYsM9Jr8mDMb3RM/edit?usp=sharing'),
-    t(5.5, 'Driver FAQ', 'circle-help', all, 'Answers to common questions. Ask Ryan if yours isn\'t there.', null, 'https://docs.google.com/document/d/1OMl7J2WxaU8HX5MxwnpamvW1r77s5MSnycS6kxYFc8o/edit?usp=sharing'),
+    t(5.5, 'Driver FAQ', 'circle-help', all, 'Answers to common questions. Ask Ryan if yours isn\'t there.', null, 'https://docs.google.com/document/d/1dEkED3bjbI0gqBw53WLE-3h2Z5758XINufapKwUjNTg/edit?usp=sharing'),
     t(6, 'Call Dispatch', 'phone', ['driver', 'attendant'], null, null, 'tel:+15302214826'),
     t(7, 'Accident / Emergency Instructions', 'triangle-alert', ['driver', 'attendant'], 'What to do at the scene.', null),
     t(8, 'Repair Quote Review ("Ask Ryan")', 'wrench', ['dispatcher', 'admin'], 'For staff who handle shop quotes.', null),
