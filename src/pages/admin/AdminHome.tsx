@@ -8,9 +8,10 @@ import { AdminBlocks } from './AdminBlocks'
 import { AdminLines } from './AdminLines'
 import { AdminCoverage } from './AdminCoverage'
 import { AdminSchedule } from './AdminSchedule'
-import { Users, Clock, Rows3, CalendarCheck, ChevronRight, CalendarRange } from 'lucide-react'
+import { AdminBidding } from './AdminBidding'
+import { Users, Clock, Rows3, CalendarCheck, ChevronRight, CalendarRange, Gavel } from 'lucide-react'
 
-type Section = 'menu' | 'employees' | 'blocks' | 'lines' | 'coverage' | 'schedule'
+type Section = 'menu' | 'employees' | 'blocks' | 'lines' | 'coverage' | 'schedule' | 'bidding'
 
 export function AdminHome() {
   const [section, setSection] = useState<Section>('menu')
@@ -25,9 +26,10 @@ export function AdminHome() {
   const back = () => setSection('menu')
   if (section === 'employees') return <AdminEmployees onBack={back} />
   if (section === 'blocks') return <AdminBlocks onBack={back} />
-  if (section === 'lines') return <AdminLines onBack={back} />
   if (section === 'coverage') return <AdminCoverage onBack={back} />
   if (section === 'schedule') return <AdminSchedule onBack={back} />
+  if (section === 'bidding') return <AdminBidding onBack={back} />
+  if (section === 'lines') return <AdminLines onBack={back} onOffer={() => setSection('bidding')} />
 
   const activeEmployees = data.employees.filter(e => e.active)
   const missingPhone = activeEmployees.filter(e => !data.contacts.find(c => c.employee_id === e.id)?.phone.replace(/\D/g, '').slice(-4).match(/^\d{4}$/)).length
@@ -50,6 +52,19 @@ export function AdminHome() {
           : 'No shifts generated yet'}
         alert={!data.generatedThrough || data.generatedThrough < todayISO()}
         onClick={() => setSection('schedule')}
+      />
+      <MenuCard
+        icon={<Gavel size={20} />}
+        title="Line bidding"
+        subtitle={(() => {
+          const open = data.bidPeriods.find(p => p.status === 'open')
+          const review = data.bidPeriods.find(p => p.status === 'closed')
+          if (review) return `${review.name}: results ready to review`
+          if (open) return `${open.name}: bidding open`
+          return 'Set up a bid for the next quarter or a growth line'
+        })()}
+        alert={data.bidPeriods.some(p => p.status === 'closed')}
+        onClick={() => setSection('bidding')}
       />
       <MenuCard
         icon={<Users size={20} />}

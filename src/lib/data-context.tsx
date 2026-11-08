@@ -2,16 +2,20 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import { db, type TableName } from './db'
 import { useAuth } from './auth'
 import { addDays, assignmentConflicts, formatDate, formatTime, generateShifts, todayISO } from './scheduling'
+import * as bidding from './bidding-actions'
+import type { SheetValues, SyncPlan } from './sheet-sync'
 import { assignShift, createShift, decideRequest, driverActions, loadShiftHistory, type DecisionOptions, type SwapCandidate } from './board-actions'
 import type {
   Announcement, AnnouncementView, AppSetting, Block, CoverageRequirement, CrewRole, Dow, Employee,
   EmployeeContact, Line, LineAssignment, LineDay, Message, Shift, AppNotification, ShiftRequest,
+  BidPeriod, BidPeriodLine, BidOptin, Bid, BidResult,
 } from '../types'
 
 const TABLES: TableName[] = [
   'employees', 'employee_contacts', 'announcements', 'announcement_views', 'messages',
   'blocks', 'lines', 'line_days', 'coverage_requirements', 'line_assignments', 'app_settings',
   'shifts', 'notifications', 'shift_requests',
+  'bid_periods', 'bid_period_lines', 'bid_optins', 'bids', 'bid_results',
 ]
 
 /** How far back shifts are loaded (the roster/schedule look ahead from today). */
@@ -33,12 +37,18 @@ type Tables = {
   shifts: Shift[]
   notifications: AppNotification[]
   shift_requests: ShiftRequest[]
+  bid_periods: BidPeriod[]
+  bid_period_lines: BidPeriodLine[]
+  bid_optins: BidOptin[]
+  bids: Bid[]
+  bid_results: BidResult[]
 }
 
 const EMPTY: Tables = {
   employees: [], employee_contacts: [], announcements: [], announcement_views: [], messages: [],
   blocks: [], lines: [], line_days: [], coverage_requirements: [], line_assignments: [], app_settings: [],
   shifts: [], notifications: [], shift_requests: [],
+  bid_periods: [], bid_period_lines: [], bid_optins: [], bids: [], bid_results: [],
 }
 
 export type EmployeeDraft = Omit<Employee, 'id' | 'created_at' | 'auth_user_id' | 'push_subscription'> & { id?: string }
@@ -115,6 +125,26 @@ interface DataAPI {
   assignShift: (shiftId: string, employeeId: string | null, opts: DecisionOptions) => Promise<void>
   createShift: (draft: { date: string; block_id: string; role: CrewRole; employee_id: string | null }, opts: DecisionOptions) => Promise<void>
   loadShiftHistory: typeof loadShiftHistory
+
+  // Bidding
+  bidPeriods: BidPeriod[]
+  bidPeriodLines: BidPeriodLine[]
+  bidOptins: BidOptin[]
+  bids: Bid[]
+  bidResults: BidResult[]
+  submitBids: (periodId: string, lineIds: string[], wantsFullTime: boolean) => Promise<void>
+  savePeriod: (id: string | null, draft: bidding.PeriodDraft, by: string | null) => Promise<string>
+  openBidding: (id: string) => Promise<void>
+  sendBidReminder: (id: string) => Promise<number>
+  closeBidding: (id: string) => Promise<void>
+  rerunAssignment: (id: string) => Promise<void>
+  setBidResult: (periodId: string, employeeId: string, lineId: string | null, note: string | null) => Promise<void>
+  publishPeriod: (id: string, by: string | null) => Promise<void>
+  cancelPeriod: (id: string) => Promise<void>
+
+  // Google Sheet sync
+  fetchSheet: () => Promise<SheetValues>
+  applySync: (plan: SyncPlan) => Promise<void>
 }
 
 const DataContext = createContext<DataAPI>(null!)
@@ -173,6 +203,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const board = async (fn: () => Promise<unknown>) => {
     try { await fn() } finally {
       await Promise.all([loadTable('shifts'), loadTable('shift_requests'), loadTable('notifications')])
+    }
+  }
+
+  const bid = async (fn: () => Promise<unknown>) => {
+    try { await fn() } finally {
+      await Promise.all(['bid_periods', 'bid_period_lines', 'bid_optins', 'bids', 'bid_results', 'notifications'].map(t => loadTable(t as TableName)))
     }
   }
 
@@ -420,6 +456,27 @@ export function DataProvider({ children }: { children: ReactNode }) {
     assignShift: (id, emp, opts) => board(() => assignShift(id, emp, opts)),
     createShift: (draft, opts) => board(() => createShift(draft, opts)),
     loadShiftHistory,
+
+    bidPeriods: useMemo(() => [...tables.bid_periods].sort((a, b) => b.start_date.localeCompare(a.start_date)), [tables.bid_periods]),
+    bidPeriodLines: tables.bid_period_lines,
+    bidOptins: tables.bid_optins,
+    bids: tables.bids,
+    bidResults: tables.bid_results,
+    submitBids: (p, l, ft) => bid(() => bidding.submitBids(p, l, ft)),
+    savePeriod: async (id, draft, by) => { let out = ''; await bid(async () => { out = await bidding.savePeriod(id, draft, by) }); return out },
+    openBidding: (id) => bid(() => bidding.openBidding(id)),
+    sendBidReminder: async (id) => { let n = 0; await bid(async () => { n = await bidding.sendReminder(id) }); return n },
+    closeBidding: (id) => bid(() => bidding.closeBidding(id)),
+    rerunAssignment: (id) => bid(() => bidding.runAssignment(id)),
+    setBidResult: (p, e, l, note) => bid(() => bidding.setResult(p, e, l, note)),
+    publishPeriod: (id, by) => bid(async () => { await bidding.publishPeriod(id, by); await Promise.all([loadTable('line_assignments'), loadTable('shifts'), loadTable('app_settings')]) }),
+    cancelPeriod: (id) => bid(() => bidding.cancelPeriod(id)),
+
+    fetchSheet: bidding.fetchSheet,
+    applySync: async (plan) => {
+      await bidding.applySync(plan)
+      await Promise.all([loadTable('employees'), loadTable('employee_contacts')])
+    },
 
     markNotificationsRead: async (ids) => {
       if (ids.length === 0) return

@@ -1,0 +1,41 @@
+// Demo-mode stand-in for the "Master Contact and Schedule" Google Sheet: same tabs and columns,
+// made-up people (the demo employees). Used by the sheet sync in demo mode and by tests.
+import type { SheetValues } from './sheet-sync'
+
+export const DEMO_SHEET: SheetValues = {
+  roster: [
+    ['Name', 'Role', 'Drives', 'Start date', 'Status', 'Notes'],
+    ['Pat Morgan', 'Owner, driver', 'Yes', '1/9/2012', 'Active'],
+    ['Dana Reyes', 'Dispatch', 'No', '5/2/2016', 'Active'],
+    ['Marcus Johnson', 'FT Driver', 'Yes', '3/2/2015', 'Active'],
+    ['Sarah Chen', 'FT Driver, dispatch', 'Yes', '6/12/2017', 'Active'],
+    ['James Williams', 'FT Driver', 'Yes', '1/7/2019', 'Active'],
+    ['Rosa Martinez', 'PT Driver', 'Yes', '4/9/2018', 'Active'],
+    ['David Thompson', 'PT Driver', 'Yes', '4/9/2018', 'Active'],
+    ['Linda Baker', 'PT Driver', 'Yes', '2/1/2021', 'Active'],
+    ['Kevin Wright', 'Backup Driver', 'Yes', '5/23/2022', 'Active'],
+    ['Angela Davis', 'FT Gurney tech', 'No', '9/30/2019', 'Active'],
+    ['Mike Patterson', 'Gurney tech', 'No', '3/13/2023', 'Active'],
+    ['Teresa Gonzalez', 'PT Driver', 'Yes', '1/8/2024', 'Active'],
+    ['Jordan Park', 'PT Driver', 'Yes', '10/1/2026', 'Active', 'New hire'],
+    ['Sam Ortiz', '', '', '8/4/2026', 'Confirm', 'Checking'],
+  ],
+  schedule: [
+    ['Name', 'Phone', 'Email', 'Role', 'Active', 'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Morale', 'Notes'],
+    ['Marcus Johnson', '(530) 555-0111', '', 'FT Driver', 'Yes', '', '1', '1', '1', '1', '1', '', '9', 'Mon–Fri'],
+    ['Sarah Chen*', '(530) 555-0112', '', 'FT Driver, Dispatch 2', 'Yes', '', '1', '1', '1', '1', '1', '', '8', 'Open availability; weekend dispatch'],
+    ['James Williams', '(530) 555-0113', '', 'FT Driver', 'Yes', '1', '1', '1', '1', '1', '1', '1', '', 'Open availability'],
+    ['Rosa Martinez', '(530) 555-0114', '', 'PT Driver', 'Yes', '', '1', '1', '0.5', '', '', '', '', 'Off by 6:00 pm Wednesdays, no more than 20 hours per week'],
+    ['David Thompson', '(530) 555-0115', '', 'PT Driver', 'Yes', '1', '', '', '', '', '', '1', '', 'Weekends'],
+    ['Linda Baker', '(530) 555-0116', '', 'PT Driver', 'Yes', '', '', '', '', '1', '1', '1', '', 'Thu–Sat'],
+    ['Kevin Wright**', '(530) 555-0117', '', 'Backup Driver', 'Yes', '', '', '0.5', '0.5', '0.5', '0.5', '0.5', '', 'After 4:00 pm Tue–Fri, after 2:00 pm Sat'],
+    ['Angela Davis', '(530) 555-0118', '', 'Gurney Tech', 'Yes', '', '1', '1', '1', '1', '1', '', '', ''],
+    ['Mike Patterson', '(530) 555-0119', '', 'Gurney Tech', 'Yes', '1', '', '', '', '', '', '1', '', 'Weekends'],
+    ['Teresa Gonzalez', '(530) 555-0120', '', 'PT Driver', 'Yes', '', '1', '1', '1', '1', '1', '', '', ''],
+    ['Jordan Park', '(530) 555-0130', '', 'PT Driver', 'Yes', '', '', '1', '1', '', '', '', '', 'New'],
+    ['Former Person', '', '', 'FT Driver', 'No', '', '', '', '', '', '', '', '', ''],
+    ['Totals', '', '', '', '', '3', '7', '8', '8', '8', '8', '6'],
+    [],
+    ['Drivers FT', '', '', '', '', '3'],
+  ],
+}

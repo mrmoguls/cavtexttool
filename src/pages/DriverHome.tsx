@@ -17,9 +17,11 @@ import { Bell, MessageSquare, Megaphone, CheckCircle, Play, CalendarDays, Repeat
 interface DriverHomeProps {
   driver: Employee
   onSignOut: () => void
+  /** Shown for drivers who also dispatch. */
+  onSwitch?: () => void
 }
 
-export function DriverHome({ driver, onSignOut }: DriverHomeProps) {
+export function DriverHome({ driver, onSignOut, onSwitch }: DriverHomeProps) {
   const [tab, setTab] = useState<'schedule' | 'board' | 'feed' | 'messages'>('schedule')
   const [showNotifications, setShowNotifications] = useState(false)
   const [pushEnabled, setPushEnabled] = useState(false)
@@ -64,6 +66,9 @@ export function DriverHome({ driver, onSignOut }: DriverHomeProps) {
         right={
           <div className="flex items-center gap-3">
             <BellButton count={data.unreadNotifications} onClick={() => setShowNotifications(true)} />
+            {onSwitch && (
+              <button onClick={onSwitch} className="text-xs font-semibold text-white bg-white/15 rounded-lg px-2 py-1">Dispatch</button>
+            )}
             <button onClick={onSignOut} className="text-xs text-white/60 underline underline-offset-2">
               Not you?
             </button>

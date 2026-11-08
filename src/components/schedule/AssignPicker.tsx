@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useData } from '../../lib/data-context'
 import { useAuth } from '../../lib/auth'
-import { bySeniority, overtimeLimits, overtimeWarnings, workProblem } from '../../lib/scheduling'
+import { bySeniority, DOW_LONG, dowOf, overtimeLimits, overtimeWarnings, workProblem } from '../../lib/scheduling'
 import { Button } from '../ui/Button'
 import { Field, Select, TextArea, Warning } from '../ui/Form'
 import type { Shift } from '../../types'
@@ -34,11 +34,18 @@ export function AssignPicker({ shift, onSave, saveLabel = 'Assign', allowOpen = 
     return crew.map(e => {
       const problem = workProblem(e, shift, block, data.shifts)
       const warnings = overtimeWarnings({ employeeId: e.id, add: [shift], shifts: data.shifts, blocksById: data.blocksById, limits })
+      // Availability from the schedule sheet (a warning for dispatch, not a block).
+      const av = data.contacts.find(c => c.employee_id === e.id)?.availability
+      if (av) {
+        const v = Number(av[String(dowOf(shift.date))] ?? 0)
+        if (v <= 0) warnings.unshift(`Marked not available on ${DOW_LONG[dowOf(shift.date)]}s in the schedule sheet.`)
+        else if (v < 1) warnings.unshift(`Only partly available on ${DOW_LONG[dowOf(shift.date)]}s.`)
+      }
       return { e, problem, warnings }
     }).sort((a, b) =>
       Number(!!a.problem && a.problem !== 'Already working that day.') - Number(!!b.problem && b.problem !== 'Already working that day.') ||
       a.warnings.length - b.warnings.length)
-  }, [data.employees, data.shifts, data.blocksById, shift, block, limits])
+  }, [data.employees, data.shifts, data.blocksById, data.contacts, shift, block, limits])
 
   const chosen = options.find(o => o.e.id === choice)
   const blocked = chosen?.problem && chosen.problem !== 'Already working that day.'
@@ -68,7 +75,7 @@ export function AssignPicker({ shift, onSave, saveLabel = 'Assign', allowOpen = 
             <option key={e.id} value={e.id} disabled={e.id === shift.employee_id}>
               {e.name} · {e.employment_type}
               {problem && problem !== 'Already working that day.' ? ` · ${problem.replace(/\.$/, '')}` : problem ? ' · working that day' : ''}
-              {!problem && warnings.length ? ' · overtime' : ''}
+              {!problem && warnings.length ? (warnings[0].startsWith('Marked not') ? ' · unavailable' : ' · warning') : ''}
               {e.id === shift.employee_id ? ' · current' : ''}
             </option>
           ))}

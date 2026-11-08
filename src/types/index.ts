@@ -11,14 +11,27 @@ export interface Employee {
   hire_seq: number | null
   gurney_qualified: boolean
   active: boolean
+  /** Driver who also dispatches (e.g. "FT Driver, dispatch" in the sheet). */
+  can_dispatch?: boolean
+  /** False for backup drivers: they pick up open shifts instead of bidding on lines. */
+  bids_on_lines?: boolean
+  /** Seniority, role, FT/PT, active and phone come from the Google Sheet. */
+  sheet_managed?: boolean
+  sheet_synced_at?: string | null
   auth_user_id?: string | null
   push_subscription?: string | null
   created_at: string
 }
 
+/** Day of week ("0" = Sunday) → 1 available, 0.5 partial, 0 not available. */
+export type Availability = Partial<Record<string, number>>
+
 export interface EmployeeContact {
   employee_id: string
   phone: string
+  /** null = no availability on file (no restriction). */
+  availability?: Availability | null
+  availability_notes?: string | null
   updated_at?: string
 }
 
@@ -201,4 +214,60 @@ export interface ShiftRequest {
   decided_at: string | null
   created_at: string
   updated_at: string
+}
+
+// ─── Bidding ──────────────────────────────────────────────────────────────────
+
+export type BidPeriodStatus = 'draft' | 'open' | 'closed' | 'published' | 'cancelled'
+
+export interface BidPeriod {
+  id: string
+  name: string
+  kind: 'quarter' | 'month' | 'offer'
+  start_date: string
+  end_date: string
+  status: BidPeriodStatus
+  closes_at: string
+  opened_at: string | null
+  closed_at: string | null
+  published_at: string | null
+  reminder_sent_at: string | null
+  notes: string | null
+  created_by: string | null
+  created_at: string
+}
+
+export interface BidPeriodLine {
+  id: string
+  bid_period_id: string
+  line_id: string
+}
+
+export interface BidOptin {
+  id: string
+  bid_period_id: string
+  employee_id: string
+  wants_full_time: boolean
+  submitted_at: string
+}
+
+export interface Bid {
+  id: string
+  bid_period_id: string
+  employee_id: string
+  line_id: string
+  rank: number
+  created_at: string
+}
+
+export interface BidResult {
+  id: string
+  bid_period_id: string
+  employee_id: string
+  line_id: string | null
+  source: 'auto' | 'manual'
+  rank_got: number | null
+  seniority_order: number | null
+  note: string | null
+  created_at: string
 }

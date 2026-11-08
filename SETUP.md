@@ -25,6 +25,7 @@ Each one should finish with "Success". They're safe to run again if you're unsur
 3. `supabase/migrations/002_scheduling_setup.sql` — blocks, lines, coverage (with starter data)
 4. `supabase/migrations/003_shifts_and_notifications.sql` — dated shifts and in-app notifications
 5. `supabase/migrations/004_shift_board.sql` — shift board: give-ups, trades, sick calls, approvals
+6. `supabase/migrations/005_bidding_and_sheet_sync.sql` — line bidding + Google Sheet sync fields
 
 > **Already running the app?** Do the same: run 001 then 002. Your existing drivers become
 > employees automatically, but **nobody can sign in until they have a phone number on file**
@@ -141,6 +142,55 @@ Push notifications let the app alert drivers even when it's closed — this is w
 
 ---
 
+## Step 2d: Connect the Google Sheet (seniority and availability)
+
+The **Master Contact and Schedule** sheet is the source of truth for seniority (Roster tab start
+dates), role, FT/PT, active status, phone, and day-by-day availability (Schedule tab). The app only
+reads it; it never writes to the sheet.
+
+1. In Google Cloud Console, create a project (or use one), enable the **Google Sheets API**, create a
+   **service account**, and download a **JSON key** for it.
+2. Open the sheet → **Share** → add the service account's email (ends in
+   `iam.gserviceaccount.com`) as **Viewer**.
+3. Supabase → **Edge Functions → Secrets**: add `GOOGLE_SERVICE_ACCOUNT_JSON` with the whole JSON
+   key file as the value.
+4. Deploy `supabase/functions/sheet-sync/index.ts` as a function named `sheet-sync`, with
+   **Verify JWT ON** (only signed-in admins can use it).
+5. In the app: **Admin → Employees → Sync from Google Sheet → Preview changes → Apply**. Sync again
+   any time the sheet changes.
+
+How the sheet's wording is read:
+
+| Sheet says | App sets |
+|---|---|
+| FT Driver / PT Driver | Driver, full-time / part-time |
+| Backup Driver | Part-time driver who picks up open shifts (does not bid on lines) |
+| FT Driver, dispatch | Driver who also has dispatch access |
+| FT Gurney tech / PT Gurney tech | Attendant (plain "Gurney tech" is set as part-time and flagged) |
+| Dispatch | Dispatcher |
+| Owner / Exec / Director | Admin |
+| Status: Active / Former / Confirm | Active / inactive / skipped until confirmed |
+
+Availability: `1` = available, `0.5` = partly, blank = not available. People can't rank a line
+that needs them on a day they're not available; partial days show a warning. The Notes column is
+shown to admins during bid review.
+
+After a sync, those fields are locked in the app ("Managed in the Google Sheet"). Gurney
+qualification isn't in the sheet, so it's still set in the app.
+
+### Optional: automatic "bidding closes soon" reminders
+
+In Supabase → **Database → Extensions**, enable `pg_cron`, then run:
+
+```sql
+select cron.schedule('bid-reminders', '0 * * * *', $$select public.notify_bids_closing_soon()$$);
+```
+
+It reminds people who haven't ranked yet, once, in the last 24 hours before a deadline. Admins can
+also send a reminder by hand from the bid screen.
+
+---
+
 ## Who sees what
 
 | Role | Sees |
@@ -179,6 +229,20 @@ To remove someone, turn off **Active** (their history is kept).
 - **Dispatch → Requests** is the approval queue: give-ups, trades, open-shift requests and sick
   calls. Overtime (over 8 hrs/day or 40 hrs/week, or a shift over 10 hrs) shows as a warning;
   approving anyway needs a reason, which is saved.
+
+## Line bidding
+
+1. **Admin → Line bidding → New bid**: name, dates the lines run, deadline, and which lines.
+2. **Open bidding**: everyone who bids gets a notification and ranks the lines they're eligible for
+   (full-time employees rank full-time lines; part-timers can turn on "I want full-time").
+3. **Close bidding and assign by seniority**: full-time employees in seniority order, then
+   part-time. Each person gets their highest-ranked line that's still open.
+4. **Review**: change anyone's result, see lines left open, see everyone's rankings and when they saved.
+5. **Publish**: new lines start on the start date (current holders end the day before), shifts are
+   created for the whole period, and everyone is told what they got.
+
+To add a growth line mid-period, create it under **Admin → Lines** (category Growth), then use
+**Offer by seniority** on it. To make it permanent, **Convert to core**.
 
 ## Shift board rules
 

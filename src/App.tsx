@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useAuth } from './lib/auth'
 import { DataProvider } from './lib/data-context'
 import { Onboarding } from './pages/Onboarding'
@@ -6,6 +7,8 @@ import { DispatchHome } from './pages/DispatchHome'
 
 export default function App() {
   const { status, me, isStaff, signOut } = useAuth()
+  // Drivers who also dispatch start on their own schedule and can switch to dispatch.
+  const [view, setView] = useState<'driver' | 'dispatch'>('driver')
 
   if (status === 'loading') {
     return (
@@ -17,12 +20,18 @@ export default function App() {
 
   if (status === 'signed-out' || !me) return <Onboarding />
 
+  const isCrew = me.role === 'driver' || me.role === 'attendant'
+
   // Data loads only once someone is signed in (security rules need to know who's asking).
   return (
     <DataProvider key={me.id}>
-      {isStaff
-        ? <DispatchHome onSignOut={signOut} />
-        : <DriverHome driver={me} onSignOut={signOut} />}
+      {isCrew && isStaff
+        ? view === 'driver'
+          ? <DriverHome driver={me} onSignOut={signOut} onSwitch={() => setView('dispatch')} />
+          : <DispatchHome onSignOut={signOut} onSwitch={() => setView('driver')} />
+        : isStaff
+          ? <DispatchHome onSignOut={signOut} />
+          : <DriverHome driver={me} onSignOut={signOut} />}
     </DataProvider>
   )
 }

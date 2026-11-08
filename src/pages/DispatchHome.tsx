@@ -19,9 +19,11 @@ import { Megaphone, MessageSquare, Settings, ClipboardList, Repeat, Plus, Chevro
 
 interface DispatchHomeProps {
   onSignOut: () => void
+  /** Shown for drivers who also dispatch. */
+  onSwitch?: () => void
 }
 
-export function DispatchHome({ onSignOut }: DispatchHomeProps) {
+export function DispatchHome({ onSignOut, onSwitch }: DispatchHomeProps) {
   const [tab, setTab] = useState<'roster' | 'requests' | 'starts' | 'announcements' | 'inbox' | 'admin'>('roster')
   const [showNotifications, setShowNotifications] = useState(false)
   const [composing, setComposing] = useState(false)
@@ -75,6 +77,9 @@ export function DispatchHome({ onSignOut }: DispatchHomeProps) {
         right={
           <div className="flex items-center gap-3">
             <BellButton count={data.unreadNotifications} onClick={() => setShowNotifications(true)} />
+            {onSwitch && (
+              <button onClick={onSwitch} className="text-xs font-semibold text-white bg-white/15 rounded-lg px-2 py-1">My schedule</button>
+            )}
             <button onClick={handleSignOut} className="text-xs text-white/60 underline underline-offset-2">
               Sign out
             </button>

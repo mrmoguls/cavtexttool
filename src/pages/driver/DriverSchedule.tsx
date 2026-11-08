@@ -11,6 +11,8 @@ import { ScrollBody, Segmented, SectionLabel, SubHeader } from '../../components
 import type { Employee, Shift } from '../../types'
 import { CalendarDays, ChevronLeft, ChevronRight, Clock } from 'lucide-react'
 import { ShiftActions } from './ShiftActions'
+import { BidBanner, DriverBid } from './DriverBid'
+import type { BidPeriod } from '../../types'
 import { StatusPill } from '../../components/schedule/ShiftBits'
 import { isActive, REQUEST_STATUS_LABEL } from '../../lib/scheduling'
 
@@ -28,6 +30,7 @@ export function DriverSchedule({ driver, onMessageDispatch }: { driver: Employee
   const [view, setView] = useState<'list' | 'week'>('list')
   const [weekStart, setWeekStart] = useState(() => mondayOf(today))
   const [open, setOpen] = useState<Shift | null>(null)
+  const [bidding, setBidding] = useState<BidPeriod | null>(null)
 
   const mine = useMemo(
     () => data.shifts
@@ -36,12 +39,21 @@ export function DriverSchedule({ driver, onMessageDispatch }: { driver: Employee
     [data.shifts, driver.id],
   )
 
+  if (bidding) {
+    const fresh = data.bidPeriods.find(p => p.id === bidding.id) ?? bidding
+    return <DriverBid driver={driver} period={fresh} onBack={() => setBidding(null)} />
+  }
+
   if (open) {
     const fresh = data.shifts.find(s => s.id === open.id) ?? open
     return <ShiftDetail shift={fresh} onBack={() => setOpen(null)} onMessageDispatch={onMessageDispatch} />
   }
 
   const assignment = data.assignments.find(a => a.employee_id === driver.id && isActiveOn(a.effective_from, a.effective_to, today))
+  const nextAssignment = data.assignments
+    .filter(a => a.employee_id === driver.id && a.effective_from > today)
+    .sort((a, b) => a.effective_from.localeCompare(b.effective_from))[0]
+  const nextLine = nextAssignment ? data.lines.find(l => l.id === nextAssignment.line_id) : undefined
   const line = assignment ? data.lines.find(l => l.id === assignment.line_id) : undefined
   const lineDays = line ? data.lineDays.filter(d => d.line_id === line.id) : []
 
@@ -54,6 +66,7 @@ export function DriverSchedule({ driver, onMessageDispatch }: { driver: Employee
 
   return (
     <ScrollBody>
+      <BidBanner driver={driver} onOpen={setBidding} />
       <Card>
         <p className="text-xs font-semibold text-[#6B7A99] uppercase tracking-wide">Your line</p>
         {line ? (
@@ -68,6 +81,9 @@ export function DriverSchedule({ driver, onMessageDispatch }: { driver: Employee
           </div>
         ) : (
           <p className="text-sm text-[#6B7A99] mt-1">You don't hold a line right now. Dispatch will add any shifts you pick up.</p>
+        )}
+        {nextLine && nextAssignment && (
+          <p className="text-sm text-[#1B2E6B] mt-2">From {formatDate(nextAssignment.effective_from)}: <b>{nextLine.code}</b> · {lineSummary(nextLine, data.lineDays.filter(d => d.line_id === nextLine.id), data.blocksById)}</p>
         )}
       </Card>
 

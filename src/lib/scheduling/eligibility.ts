@@ -1,4 +1,5 @@
-import type { Employee, Line } from '../../types'
+import type { Availability, Employee, Line, LineDay } from '../../types'
+import { DISPLAY_WEEK, DOW_LONG } from './time'
 
 export interface LineEligibilityOptions {
   /** PT employee opted in to "want full-time" for this bid period. */
@@ -11,7 +12,7 @@ export interface LineEligibilityOptions {
  * qualification; FT lines → FT employees (or PT who opted in to full-time); PT lines → PT employees.
  */
 export function lineIneligibility(
-  emp: Pick<Employee, 'role' | 'employment_type' | 'gurney_qualified' | 'active'>,
+  emp: Pick<Employee, 'role' | 'employment_type' | 'gurney_qualified' | 'active' | 'bids_on_lines'>,
   line: Pick<Line, 'role' | 'employment_type' | 'requires_gurney_qual' | 'active'>,
   opts: LineEligibilityOptions = {},
 ): string[] {
@@ -30,7 +31,42 @@ export function lineIneligibility(
   if (line.employment_type === 'PT' && emp.employment_type === 'FT') {
     reasons.push('Part-time line — full-time employees bid on full-time lines.')
   }
+  if (emp.bids_on_lines === false) reasons.push('Backup drivers pick up open shifts instead of bidding on lines.')
   return reasons
+}
+
+/**
+ * How a line's days fit someone's availability from the schedule sheet.
+ * `blocked`: days the line needs them but they're not available (can't rank it).
+ * `partial`: days they're only partly available (allowed, with a warning).
+ * No availability on file = no restriction.
+ */
+export function availabilityFit(availability: Availability | null | undefined, lineDays: Pick<LineDay, 'dow'>[]) {
+  const blocked: string[] = []
+  const partial: string[] = []
+  if (!availability) return { blocked, partial }
+  const days = [...lineDays].sort((a, b) => DISPLAY_WEEK.indexOf(a.dow) - DISPLAY_WEEK.indexOf(b.dow))
+  for (const d of days) {
+    const v = Number(availability[String(d.dow)] ?? 0)
+    if (v <= 0) blocked.push(DOW_LONG[d.dow])
+    else if (v < 1) partial.push(DOW_LONG[d.dow])
+  }
+  return { blocked, partial }
+}
+
+/** All reasons someone can't rank a line, including availability (mirrors line_problem() in the database). */
+export function lineBidProblems(
+  emp: Pick<Employee, 'role' | 'employment_type' | 'gurney_qualified' | 'active' | 'bids_on_lines'>,
+  line: Pick<Line, 'role' | 'employment_type' | 'requires_gurney_qual' | 'active'>,
+  lineDays: Pick<LineDay, 'dow'>[],
+  availability: Availability | null | undefined,
+  opts: LineEligibilityOptions = {},
+): { problems: string[]; warnings: string[] } {
+  const problems = lineIneligibility(emp, line, opts)
+  const fit = availabilityFit(availability, lineDays)
+  if (fit.blocked.length) problems.push(`Not available ${fit.blocked.join(', ')} (schedule sheet).`)
+  const warnings = fit.partial.length ? [`Only partly available ${fit.partial.join(', ')}.`] : []
+  return { problems, warnings }
 }
 
 /**

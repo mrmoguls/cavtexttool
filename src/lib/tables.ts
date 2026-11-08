@@ -14,6 +14,11 @@ export type TableName =
   | 'shifts'
   | 'notifications'
   | 'shift_requests'
+  | 'bid_periods'
+  | 'bid_period_lines'
+  | 'bid_optins'
+  | 'bids'
+  | 'bid_results'
 
 export const PRIMARY_KEYS: Record<TableName, string> = {
   employees: 'id',
@@ -31,11 +36,17 @@ export const PRIMARY_KEYS: Record<TableName, string> = {
   shifts: 'id',
   notifications: 'id',
   shift_requests: 'id',
+  bid_periods: 'id',
+  bid_period_lines: 'id',
+  bid_optins: 'id',
+  bids: 'id',
+  bid_results: 'id',
 }
 
 /** Tables the database audit trigger records (mirrored by the demo store). */
 export const AUDITED_TABLES: TableName[] = [
   'employees', 'blocks', 'lines', 'line_days', 'coverage_requirements', 'line_assignments', 'app_settings', 'shifts', 'shift_requests',
+  'bid_periods', 'bid_period_lines', 'bid_optins', 'bids', 'bid_results',
 ]
 
 /** Simple row filters supported by both Supabase and the demo store. */

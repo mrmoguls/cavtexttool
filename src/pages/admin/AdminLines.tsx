@@ -12,15 +12,16 @@ import { Field, ScrollBody, SectionLabel, Segmented, Select, SubHeader, TextInpu
 import type { Dow, Line, LineAssignment, LineDay } from '../../types'
 import { Plus, Trash2, UserPlus, ArrowUpCircle } from 'lucide-react'
 import { useConfirm } from '../../components/ui/ConfirmDialog'
+import { PeriodSetup } from './AdminBidding'
 
-export function AdminLines({ onBack }: { onBack: () => void }) {
+export function AdminLines({ onBack, onOffer }: { onBack: () => void; onOffer?: () => void }) {
   const data = useData()
   const [editing, setEditing] = useState<Line | 'new' | null>(null)
   const today = todayISO()
 
   if (editing) {
     const fresh = editing === 'new' ? null : data.lines.find(l => l.id === editing.id) ?? null
-    return <LineForm line={fresh} onDone={() => setEditing(null)} />
+    return <LineForm line={fresh} onDone={() => setEditing(null)} onOffer={onOffer} />
   }
 
   const groups = [
@@ -71,7 +72,7 @@ export function AdminLines({ onBack }: { onBack: () => void }) {
   )
 }
 
-function LineForm({ line, onDone }: { line: Line | null; onDone: () => void }) {
+function LineForm({ line, onDone, onOffer }: { line: Line | null; onDone: () => void; onOffer?: () => void }) {
   const data = useData()
   const confirm = useConfirm()
   const [form, setForm] = useState<LineDraft>(() => line
@@ -84,6 +85,7 @@ function LineForm({ line, onDone }: { line: Line | null; onDone: () => void }) {
     Object.fromEntries(data.lineDays.filter(d => d.line_id === line?.id).map(d => [d.dow, d.block_id])))
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
+  const [offering, setOffering] = useState(false)
   const set = <K extends keyof LineDraft>(k: K, v: LineDraft[K]) => setForm(f => ({ ...f, [k]: v }))
 
   const roleBlocks = data.blocks.filter(b => b.active && b.crew_roles.includes(form.role))
@@ -144,6 +146,10 @@ function LineForm({ line, onDone }: { line: Line | null; onDone: () => void }) {
     }
   }
 
+  if (offering && line) {
+    return <PeriodSetup period={null} presetKind="offer" presetLineIds={[line.id]} onBack={() => setOffering(false)} onDone={() => { setOffering(false); onOffer?.() }} />
+  }
+
   return (
     <>
       <SubHeader title={line ? `Line ${line.code}` : 'New line'} onBack={onDone} />
@@ -162,7 +168,8 @@ function LineForm({ line, onDone }: { line: Line | null; onDone: () => void }) {
           <Field label="Category" group hint={form.category === 'core' ? 'Facility-backed, stable for the quarter.' : 'Extra crew, added or removed monthly as we grow.'}>
             {line && line.category === 'growth'
               ? <div className="flex items-center gap-2"><Badge>Growth</Badge>
-                  <Button size="sm" variant="secondary" onClick={convertToCore}><ArrowUpCircle size={14} /> Convert to core</Button></div>
+                  <Button size="sm" variant="secondary" onClick={convertToCore}><ArrowUpCircle size={14} /> Convert to core</Button>
+                  {onOffer && <Button size="sm" variant="secondary" onClick={() => setOffering(true)}>Offer by seniority</Button>}</div>
               : line ? <Badge variant="sage">Core</Badge>
               : <Segmented value={form.category} options={[{ value: 'core', label: 'Core' }, { value: 'growth', label: 'Growth' }]} onChange={v => set('category', v)} />}
           </Field>

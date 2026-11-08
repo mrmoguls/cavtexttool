@@ -3,7 +3,8 @@
 import { DEMO_ASSIGNMENTS } from './demo-data'
 import { SEED_BLOCKS, SEED_LINE_DAYS, SEED_LINES } from './scheduling/seed'
 import { addDays, formatDate, formatTime, generateShifts, todayISO } from './scheduling'
-import type { AppNotification, Shift, ShiftRequest } from '../types'
+import type { AppNotification, Bid, BidOptin, BidPeriod, BidPeriodLine, Shift, ShiftRequest } from '../types'
+import { pacificToInstant } from './scheduling/board'
 
 const today = todayISO()
 export const DEMO_GENERATED_THROUGH = addDays(today, 27)
@@ -74,4 +75,31 @@ export function demoNotifications(): AppNotification[] {
     read_at: null,
     created_at: `${addDays(todaysAm.date, -1)}T22:30:00Z`,
   }]
+}
+
+// ─── Bidding: Q1 2027 is open, some people have ranked already ────────────────
+
+export function demoBidding(): { periods: BidPeriod[]; links: BidPeriodLine[]; bids: Bid[]; optins: BidOptin[] } {
+  const closes = pacificToInstant(addDays(today, 5), '17:00').toISOString()
+  const periods: BidPeriod[] = [{
+    id: 'bp-q1', name: 'Q1 2027 lines', kind: 'quarter', start_date: '2027-01-03', end_date: '2027-04-03', status: 'open',
+    closes_at: closes, opened_at: `${addDays(today, -2)}T17:00:00Z`, closed_at: null, published_at: null, reminder_sent_at: null,
+    notes: 'Core lines for January–March.', created_by: 'e-admin', created_at: `${addDays(today, -3)}T17:00:00Z`,
+  }]
+  const codes = SEED_LINES.map(l => l.code)
+  const links = codes.map(c => ({ id: `bpl-${c}`, bid_period_id: 'bp-q1', line_id: `line-${c}` }))
+  const ranked: [string, string[], boolean][] = [
+    ['d1', ['FT3', 'FT2'], false],      // Marcus
+    ['d2', ['FT1', 'FT2'], false],      // Sarah
+    ['d8', ['A1'], false],              // Angela
+    ['d4', ['PT1', 'PT3', 'FT2'], true], // Rosa wants full-time if one is left
+    ['d5', ['PT4', 'PT2'], false],      // David
+  ]
+  const bids: Bid[] = ranked.flatMap(([emp, list]) => list.map((c, i) => ({
+    id: `bid-${emp}-${c}`, bid_period_id: 'bp-q1', employee_id: emp, line_id: `line-${c}`, rank: i + 1, created_at: `${addDays(today, -1)}T18:00:00Z`,
+  })))
+  const optins: BidOptin[] = ranked.map(([emp, , ft]) => ({
+    id: `opt-${emp}`, bid_period_id: 'bp-q1', employee_id: emp, wants_full_time: ft, submitted_at: `${addDays(today, -1)}T18:00:00Z`,
+  }))
+  return { periods, links, bids, optins }
 }

@@ -123,7 +123,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setStatus('signed-out')
   }, [])
 
-  const isStaff = me?.role === 'dispatcher' || me?.role === 'admin'
+  const isStaff = me?.role === 'dispatcher' || me?.role === 'admin' || !!me?.can_dispatch
   const isAdmin = me?.role === 'admin'
 
   return (
