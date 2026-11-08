@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import type { Availability, Bid, BidOptin, Employee } from '../../types'
+import type { Availability, Bid, Employee } from '../../types'
 import { autoAssign, availabilityFit, biddingOrder, lineBidProblems, openPositions } from '.'
 import { SEED_LINE_DAYS, SEED_LINES } from './seed'
 
@@ -12,7 +12,6 @@ const emp = (name: string, o: Partial<Employee> = {}): Employee => ({
 })
 const bids = (empId: string, ...codes: string[]): Bid[] =>
   codes.map((c, i) => ({ id: `${empId}-${c}`, bid_period_id: 'p', employee_id: empId, line_id: line(c).id, rank: i + 1, created_at: '' }))
-const optin = (empId: string): BidOptin => ({ id: `o-${empId}`, bid_period_id: 'p', employee_id: empId, wants_full_time: true, submitted_at: '' })
 
 describe('availability', () => {
   const monWed: Availability = { 0: 0, 1: 1, 2: 1, 3: 0.5, 4: 0, 5: 0, 6: 0 }
@@ -39,9 +38,9 @@ describe('autoAssign', () => {
   const dispatcher = emp('Disp', { role: 'dispatcher' })
   const base = { lines: SEED_LINES, lineDays: SEED_LINE_DAYS, availability: new Map() }
 
-  it('orders FT by seniority, then PT; skips backups and non-crew', () => {
+  it('orders everyone by seniority (full-time and part-time together); skips backups and non-crew', () => {
     expect(biddingOrder([ptJunior, junior, backup, ptSenior, senior, dispatcher]).map(e => e.name))
-      .toEqual(['Senior FT', 'Junior FT', 'Senior PT', 'Junior PT'])
+      .toEqual(['Senior PT', 'Senior FT', 'Junior PT', 'Junior FT'])
   })
 
   it('senior gets first choice; junior falls to next choice', () => {
@@ -51,12 +50,12 @@ describe('autoAssign', () => {
     ])
   })
 
-  it('PT can take a leftover FT line only with the opt-in, and only after FT bidders', () => {
-    // Senior PT is more senior than everyone but bids after all FT employees.
-    const b = [...bids(senior.id, 'FT1'), ...bids(ptSenior.id, 'FT1', 'FT2', 'PT1'), ...bids(ptJunior.id, 'FT2', 'PT1')]
-    const r = autoAssign({ ...base, employees: [senior, ptSenior, ptJunior], bids: b, optins: [optin(ptSenior.id)] })
+  it('anyone can win any line they are qualified for; seniority decides', () => {
+    // Senior PT is the most senior and takes the full-time line; a full-time employee can take a part-time line.
+    const b = [...bids(senior.id, 'FT1', 'PT1'), ...bids(ptSenior.id, 'FT1', 'FT2'), ...bids(ptJunior.id, 'FT2', 'PT1')]
+    const r = autoAssign({ ...base, employees: [senior, ptSenior, ptJunior], bids: b, optins: [] })
     const got = Object.fromEntries(r.map(x => [x.employee_id, x.line_id ? SEED_LINES.find(l => l.id === x.line_id)!.code : null]))
-    expect(got).toEqual({ 'Senior FT': 'FT1', 'Senior PT': 'FT2', 'Junior PT': 'PT1' }) // junior PT had no opt-in for FT2
+    expect(got).toEqual({ 'Senior PT': 'FT1', 'Senior FT': 'PT1', 'Junior PT': 'FT2' })
   })
 
   it('respects positions (FLEX holds two) and availability', () => {

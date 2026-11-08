@@ -44,6 +44,16 @@ export function lineTargetHours(days: LineDay[], blocksById: Map<string, Block>)
   return days.reduce((sum, d) => sum + Number(blocksById.get(d.block_id)?.target_paid_hours ?? 0), 0)
 }
 
+/**
+ * How many hours a line is and whether they're steady: steady only when every block has a set
+ * start and end (High Noon). Shown on the bid screen so people choose knowing what to expect.
+ */
+export function lineHours(line: Pick<Line, 'is_flex' | 'hours_note'>, days: LineDay[], blocksById: Map<string, Block>): { label: string; steady: boolean } {
+  if (line.is_flex || days.length === 0) return { label: line.hours_note?.trim() || 'Hours vary', steady: false }
+  const steady = days.every(d => { const b = blocksById.get(d.block_id); return !!b && b.start_type === 'fixed' && b.end_type === 'fixed' })
+  return { label: line.hours_note?.trim() || `About ${lineTargetHours(days, blocksById)} hrs/week`, steady }
+}
+
 export function activeAssignments(assignments: LineAssignment[], asOf: string): LineAssignment[] {
   return assignments.filter(a => isActiveOn(a.effective_from, a.effective_to, asOf))
 }

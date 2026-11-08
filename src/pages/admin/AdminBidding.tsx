@@ -58,7 +58,7 @@ export function AdminBidding({ onBack }: { onBack: () => void }) {
       <ScrollBody>
         <p className="text-sm text-[#6B7A99] px-1">
           Set up a bid, open it, and people rank the lines they want. When it closes, lines are given out by seniority
-          (full-time first). You review, adjust, then publish to put everyone's new line and shifts on the schedule.
+          (everyone together; anyone can rank any line they're qualified for). You review, adjust, then publish to put everyone's new line and shifts on the schedule.
         </p>
         <Button fullWidth onClick={() => setSelected('new')}><Plus size={18} /> New bid</Button>
         {data.bidPeriods.map(p => (

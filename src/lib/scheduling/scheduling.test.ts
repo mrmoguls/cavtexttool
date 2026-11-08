@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { Employee, LineAssignment } from '../../types'
 import {
   assignmentConflicts, blockInstructions, blockTimeLabel, computeCoverage, compareSeniority,
-  formatTime, lineIneligibility, lineSummary, lineTargetHours, todayISO, TARGET_DISCLAIMER,
+  formatTime, lineHours, lineIneligibility, lineSummary, lineTargetHours, todayISO, TARGET_DISCLAIMER,
 } from '.'
 import { SEED_BLOCKS, SEED_COVERAGE, SEED_LINE_DAYS, SEED_LINES } from './seed'
 
@@ -43,9 +43,19 @@ describe('line summary + target hours', () => {
   })
   it('sums block targets', () => {
     expect(lineTargetHours(daysOf('FT1'), blocksById)).toBe(40)
-    expect(lineTargetHours(daysOf('PT4'), blocksById)).toBe(14)
-    expect(lineTargetHours(daysOf('PT2'), blocksById)).toBe(24)
+    expect(lineTargetHours(daysOf('PT4'), blocksById)).toBe(12)
+    expect(lineTargetHours(daysOf('PT2'), blocksById)).toBe(16)
     expect(lineTargetHours(daysOf('FLEX'), blocksById)).toBe(0)
+  })
+})
+
+describe('line hours', () => {
+  it('High Noon lines are steady; Sunrise and Star lines vary', () => {
+    expect(lineHours(line('FT2'), daysOf('FT2'), blocksById)).toEqual({ label: '40 hrs/week', steady: true })
+    expect(lineHours(line('FT1'), daysOf('FT1'), blocksById).steady).toBe(false)
+    expect(lineHours(line('PT5'), daysOf('PT5'), blocksById)).toEqual({ label: 'About 25–40 hrs/week', steady: false })
+    expect(lineHours({ ...line('PT1'), hours_note: null }, daysOf('PT1'), blocksById).label).toBe('About 18 hrs/week')
+    expect(lineHours(line('FLEX'), daysOf('FLEX'), blocksById)).toEqual({ label: 'Hours vary', steady: false })
   })
 })
 
@@ -66,21 +76,20 @@ describe('block language', () => {
   })
   it('fixed block has no disclaimer', () => {
     const lines = blockInstructions(block('MID'))
-    expect(lines).toEqual(['Report at 8:30 am. Shift ends at 5:00 pm.'])
+    expect(lines).toEqual(['Report at 8:00 am. Shift ends at 5:00 pm.'])
   })
 })
 
 describe('eligibility', () => {
-  it('FT bids FT, PT bids PT', () => {
+  it('anyone can bid on any line they are qualified for, full-time or part-time', () => {
     expect(lineIneligibility(emp(), line('FT1'))).toEqual([])
-    expect(lineIneligibility(emp(), line('PT1'))).toHaveLength(1)
+    expect(lineIneligibility(emp(), line('PT1'))).toEqual([])
     expect(lineIneligibility(emp({ employment_type: 'PT' }), line('PT1'))).toEqual([])
-    expect(lineIneligibility(emp({ employment_type: 'PT' }), line('FT1'))).toHaveLength(1)
-    expect(lineIneligibility(emp({ employment_type: 'PT' }), line('FT1'), { wantsFullTime: true })).toEqual([])
+    expect(lineIneligibility(emp({ employment_type: 'PT' }), line('FT1'))).toEqual([])
   })
   it('gurney + role', () => {
-    expect(lineIneligibility(emp(), line('FT3'))).toEqual(['Requires gurney qualification.'])
-    expect(lineIneligibility(emp({ gurney_qualified: true }), line('FT3'))).toEqual([])
+    expect(lineIneligibility(emp(), line('PT5'))).toEqual(['Requires gurney qualification.'])
+    expect(lineIneligibility(emp({ gurney_qualified: true }), line('PT5'))).toEqual([])
     expect(lineIneligibility(emp(), line('A1'))).toEqual(['Attendant line — attendants only.'])
     expect(lineIneligibility(emp({ role: 'attendant' }), line('A1'))).toEqual([])
     expect(lineIneligibility(emp({ role: 'attendant' }), line('FT1'))).toEqual(['Driver line — drivers only.'])

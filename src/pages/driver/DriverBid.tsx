@@ -1,9 +1,9 @@
 import { useMemo, useState } from 'react'
 import { useData } from '../../lib/data-context'
-import { biddingOrder, formatDate, isBidder, lineBidProblems, lineSummary, lineTargetHours } from '../../lib/scheduling'
+import { biddingOrder, formatDate, isBidder, lineBidProblems, lineHours, lineSummary } from '../../lib/scheduling'
 import { Card } from '../../components/ui/Card'
 import { Button } from '../../components/ui/Button'
-import { ScrollBody, SectionLabel, SubHeader, Toggle, Warning } from '../../components/ui/Form'
+import { ScrollBody, SectionLabel, SubHeader, Warning } from '../../components/ui/Form'
 import { StatusPill } from '../../components/schedule/ShiftBits'
 import type { BidPeriod, Employee, Line } from '../../types'
 import { ArrowDown, ArrowUp, Gavel, Plus, X } from 'lucide-react'
@@ -64,9 +64,7 @@ export function DriverBid({ driver, period, onBack }: { driver: Employee; period
   const savedRanking = useMemo(() => data.bids
     .filter(b => b.bid_period_id === period.id && b.employee_id === driver.id)
     .sort((a, b) => a.rank - b.rank).map(b => b.line_id), [data.bids, period.id, driver.id])
-  const savedOptin = data.bidOptins.find(o => o.bid_period_id === period.id && o.employee_id === driver.id)
   const [ranking, setRanking] = useState<string[]>(savedRanking)
-  const [wantsFT, setWantsFT] = useState(savedOptin?.wants_full_time ?? false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [saved, setSaved] = useState(false)
@@ -77,14 +75,14 @@ export function DriverBid({ driver, period, onBack }: { driver: Employee; period
   const lines = data.lines.filter(l => lineIds.has(l.id))
   const lineById = new Map(lines.map(l => [l.id, l]))
   const daysOf = (l: Line) => data.lineDays.filter(d => d.line_id === l.id)
-  const check = (l: Line) => lineBidProblems(driver, l, daysOf(l), availability, { wantsFullTime: wantsFT })
+  const check = (l: Line) => lineBidProblems(driver, l, daysOf(l), availability)
   const eligible = lines.filter(l => check(l).problems.length === 0)
   const others = lines.filter(l => check(l).problems.length > 0 && !ranking.includes(l.id))
   // Lines already in the ranking that are no longer allowed (e.g. availability changed in the sheet).
   const staleRanked = ranking.filter(id => { const l = lineById.get(id); return l ? check(l).problems.length > 0 : false })
   const order = biddingOrder(data.employees)
   const myPlace = order.findIndex(e => e.id === driver.id) + 1
-  const dirty = JSON.stringify(ranking) !== JSON.stringify(savedRanking) || wantsFT !== (savedOptin?.wants_full_time ?? false)
+  const dirty = JSON.stringify(ranking) !== JSON.stringify(savedRanking)
   const closed = period.status !== 'open' || new Date(period.closes_at) < new Date()
 
   function move(i: number, by: number) {
@@ -95,17 +93,10 @@ export function DriverBid({ driver, period, onBack }: { driver: Employee; period
     setSaved(false)
   }
 
-  function setFullTime(v: boolean) {
-    setWantsFT(v)
-    setSaved(false)
-    // Turning it off removes full-time lines from the ranking.
-    if (!v) setRanking(r => r.filter(id => !(lineById.get(id)?.employment_type === 'FT' && driver.employment_type === 'PT')))
-  }
-
   async function save() {
     setBusy(true)
     setError(null)
-    try { await data.submitBids(period.id, ranking, wantsFT); setSaved(true) }
+    try { await data.submitBids(period.id, ranking, false); setSaved(true) }
     catch (err) { setError(err instanceof Error ? err.message : 'Could not save your ranking.') }
     finally { setBusy(false) }
   }
@@ -114,11 +105,15 @@ export function DriverBid({ driver, period, onBack }: { driver: Employee; period
     <div className="flex-1 min-w-0">
       <div className="flex items-center gap-2">
         <span className="px-1.5 py-0.5 rounded-md bg-[#0B1A5C] text-white text-[11px] font-bold">{l.code}</span>
-        <p className="text-sm font-medium text-[#0B1A5C] truncate">{lineSummary(l, daysOf(l), data.blocksById)}</p>
+        <p className="text-sm font-medium text-[#0B1A5C] truncate">{l.name}</p>
       </div>
-      <p className="text-xs text-[#6B7A99] mt-0.5">
-        {l.is_flex ? 'On-call + fill-ins' : `${lineTargetHours(daysOf(l), data.blocksById)} hrs/week`} · {l.employment_type}
-        {l.positions > 1 ? ` · ${l.positions} spots` : ''}{l.category === 'growth' ? ' · growth' : ''}
+      <p className="text-xs text-[#1B2E6B] mt-0.5">{lineSummary(l, daysOf(l), data.blocksById)}</p>
+      <p className="text-xs text-[#6B7A99] mt-0.5 flex flex-wrap items-center gap-x-1.5">
+        <span>{lineHours(l, daysOf(l), data.blocksById).label}</span>
+        {lineHours(l, daysOf(l), data.blocksById).steady
+          ? <span className="px-1.5 rounded bg-[#E7F4EC] text-[#2E7D52] font-semibold">Stable</span>
+          : <span className="px-1.5 rounded bg-[#FFF4E0] text-[#9A5B00] font-semibold">Varies</span>}
+        <span>· {l.employment_type === 'FT' ? 'Full-time' : 'Part-time'}{l.positions > 1 ? ` · ${l.positions} spots` : ''}{l.category === 'growth' ? ' · growth' : ''}</span>
       </p>
       {check(l).warnings.map(w => <p key={w} className="text-xs text-amber-700">{w}</p>)}
     </div>
@@ -132,17 +127,11 @@ export function DriverBid({ driver, period, onBack }: { driver: Employee; period
           <p className="text-sm text-[#1B2E6B]">Lines run <b>{formatDate(period.start_date)} – {formatDate(period.end_date)}</b>.</p>
           <p className="text-sm text-[#1B2E6B]">Rank by <b>{deadlineText(period.closes_at)}</b>. You can change your ranking until then.</p>
           <p className="text-xs text-[#6B7A99]">
-            Lines are given out in seniority order (full-time first, then part-time). You're <b>#{myPlace}</b> of {order.length}.
+            Lines are given out in seniority order. You can rank any line you're qualified for, full-time or part-time. You're <b>#{myPlace}</b> of {order.length}.
             You get your highest-ranked line that's still open when it's your turn, so rank every line you'd accept.
           </p>
         </Card>
 
-        {driver.employment_type === 'PT' && (
-          <Card>
-            <Toggle label="I want full-time" checked={wantsFT} onChange={setFullTime}
-              hint="Lets you rank full-time lines. You only get one if it's still open after every full-time employee has picked." />
-          </Card>
-        )}
 
         <SectionLabel>Your ranking</SectionLabel>
         {ranking.length === 0 && <p className="text-sm text-[#6B7A99] px-1">Add lines from the list below, best first.</p>}

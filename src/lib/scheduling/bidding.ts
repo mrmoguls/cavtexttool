@@ -6,7 +6,7 @@ export interface AssignmentResult {
   employee_id: string
   line_id: string | null
   rank_got: number | null
-  /** 1 = most senior bidder; FT employees come before PT. */
+  /** 1 = most senior bidder. */
   seniority_order: number
   note: string
 }
@@ -16,18 +16,14 @@ export function isBidder(e: Pick<Employee, 'active' | 'role' | 'bids_on_lines'>)
   return e.active && (e.role === 'driver' || e.role === 'attendant') && e.bids_on_lines !== false
 }
 
-/** Bidding order: full-time by seniority, then part-time by seniority. */
+/** Bidding order: everyone by seniority (full-time and part-time together). */
 export function biddingOrder<T extends Employee>(employees: T[]): T[] {
-  const bidders = employees.filter(isBidder)
-  const ft = bidders.filter(e => e.employment_type === 'FT').sort(compareSeniority)
-  const pt = bidders.filter(e => e.employment_type === 'PT').sort(compareSeniority)
-  return [...ft, ...pt]
+  return employees.filter(isBidder).sort(compareSeniority)
 }
 
 /**
- * Each bidder, in order, gets their highest-ranked line that still has an open position and
- * that they're eligible for. Full-time employees go first, so full-time lines only reach
- * part-time employees (who opted in to full-time) once every full-time bidder has a line.
+ * Each bidder, in seniority order, gets their highest-ranked line that still has an open position
+ * and that they're qualified for.
  */
 export function autoAssign(input: {
   employees: Employee[]

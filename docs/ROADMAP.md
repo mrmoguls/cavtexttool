@@ -23,7 +23,7 @@ One mobile-first app (PWA) that is the driver's **single starting point for work
 | Schedule view (list + week), shift detail with start/end wording | 1 | ✅ Built |
 | Shift swaps, give-ups, open-shift pickup, dispatch approvals, overtime warnings; sick calls by phone/text to dispatch, recorded by dispatch | 1 | ✅ Built |
 | Availability | 1 | ✅ Read from the Google Sheet (Schedule tab); drivers can't edit it in the app yet |
-| Line bidding by seniority; seniority from the Google Sheet (Roster tab) | 1 | ✅ Built |
+| Line bidding by seniority; seniority from the Google Sheet (Roster tab); each line shows expected hours and Stable/Varies | 1 | ✅ Built |
 | Daily roster for Bambi, AM start-time posting | 1 | ✅ Built |
 | Weekly Bambi checklist (Bambi week view + list of changes since the week was entered) | 1 | ✅ Built |
 | Start-time confirmation by drivers (replaces texting and thumbs-up replies) | 1 | ✅ Built |
@@ -46,7 +46,7 @@ One mobile-first app (PWA) that is the driver's **single starting point for work
 
 ## Next steps
 1. **Try it out (now, demo):** Amber walks through AM starts, the Bambi week and requests; one or two drivers try schedule, confirm, give-up and time off.
-2. **Go live (setup, no new building):** Supabase project + migrations 001–011, PIN login and sheet sync functions, Google Sheet connection, scheduled alerts, hosting on Netlify, phone notification keys. Steps in SETUP.md.
+2. **Go live (setup, no new building):** Supabase project + migrations 001–012, PIN login and sheet sync functions, Google Sheet connection, scheduled alerts, hosting on Netlify, phone notification keys. Steps in SETUP.md.
 3. **Trial (1–2 weeks):** Amber + 3–4 drivers on the live app alongside today's texting and Bambi routine.
 4. **Roll out:** sign-up session so everyone installs the app, turns on notifications and stays signed in to Bambi, BBSI and Coggno on their phone. Then stop texting start times.
 5. **Then Phase 2:** incident/accident reports with photos, "Ask a question" helper, Coggno "trainings due".
@@ -104,6 +104,7 @@ _Note: the scheduling work (shift scheduling, shift board, line bidding) was bui
 ## Decision log
 - **2026-11-07:** Chose "one front door" hub model: native features for what we own, linked tiles for Bambi, payroll time clock, training (Coggno), and other tools. Decided not to rebuild ride management or payroll timekeeping for now.
 - **2026-11-07:** Amber keeps entering teams in Bambi, weekly (clone a day). CAV Hub lists every change to an entered week as a Bambi update. Start times are posted the night before from the first pickup (−30 min) and drivers confirm in the app instead of by text.
+- **2026-11-08:** Shift names: Sunrise (AM), High Noon (8:00–5:00), Big Dipper (PM), and Stars for gurney runs (Star, Saturday Star, Sunday Star); Saturday Sunrise is the 9–1 wheelchair van. Only High Noon has steady hours, so there are two full-time High Noon lines; the weekday gurney lines (PT5, A1) are part-time with hours that depend on orders (about 25–40). Anyone can bid on any line they're qualified for; seniority decides. Each line shows expected hours and Stable/Varies on the bid screen.
 - **2026-11-08:** Dropped fuel receipt photos. Drivers keep printing the receipt and turning it in with their driver log in the shop basket.
 - **2026-11-08:** No sick-call button for drivers. Sick calls must be a call or text to the dispatch phone, so they talk to a person; dispatch records it in the app.
 - **2026-11-08:** Knowledge base = one Google Doc (Driver FAQ), linked as a tile now. The AI "Ask a question" helper will be built into CAV Hub in Phase 2 (drivers are already signed in, so questions can be routed to Ryan and answers sent back) rather than as a separate public bot.

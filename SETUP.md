@@ -32,6 +32,7 @@ Each one should finish with "Success". They're safe to run again if you're unsur
 10. `supabase/migrations/009_push_notifications.sql` — phone notifications (does nothing until Step 7 is done)
 11. `supabase/migrations/010_driver_faq_tile.sql` — Driver FAQ tile (links to the FAQ Google Doc)
 12. `supabase/migrations/011_sick_calls_by_phone.sql` — sick calls go through dispatch by phone/text, not an app button
+13. `supabase/migrations/012_sun_and_sky_shifts.sql` — shift names (Sunrise, High Noon, Big Dipper, Stars), new times, two High Noon lines, open bidding
 
 > **Already running the app?** Do the same: run 001 then 002. Your existing drivers become
 > employees automatically, but **nobody can sign in until they have a phone number on file**
@@ -309,10 +310,11 @@ sees them the next time they open the app.
 ## Line bidding
 
 1. **Admin → Line bidding → New bid**: name, dates the lines run, deadline, and which lines.
-2. **Open bidding**: everyone who bids gets a notification and ranks the lines they're eligible for
-   (full-time employees rank full-time lines; part-timers can turn on "I want full-time").
-3. **Close bidding and assign by seniority**: full-time employees in seniority order, then
-   part-time. Each person gets their highest-ranked line that's still open.
+2. **Open bidding**: everyone who bids gets a notification and ranks the lines they're qualified for
+   (driver or attendant, gurney qualification). Full-time and part-time employees can rank any line;
+   each line shows its expected hours and whether they're **Stable** (High Noon) or **Vary**.
+3. **Close bidding and assign by seniority**: everyone in one seniority order. Each person gets
+   their highest-ranked line that's still open.
 4. **Review**: change anyone's result, see lines left open, see everyone's rankings and when they saved.
 5. **Publish**: new lines start on the start date (current holders end the day before), shifts are
    created for the whole period, and everyone is told what they got.

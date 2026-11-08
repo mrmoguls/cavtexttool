@@ -93,7 +93,7 @@ export function demoBidding(): { periods: BidPeriod[]; links: BidPeriodLine[]; b
   const codes = SEED_LINES.map(l => l.code)
   const links = codes.map(c => ({ id: `bpl-${c}`, bid_period_id: 'bp-q1', line_id: `line-${c}` }))
   const ranked: [string, string[], boolean][] = [
-    ['d1', ['FT3', 'FT2'], false],      // Marcus
+    ['d1', ['PT5', 'FT2'], false],      // Marcus
     ['d2', ['FT1', 'FT2'], false],      // Sarah
     ['d8', ['A1'], false],              // Angela
     ['d4', ['PT1', 'PT3', 'FT2'], true], // Rosa wants full-time if one is left

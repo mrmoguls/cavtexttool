@@ -106,6 +106,8 @@ export interface Line {
   positions: number
   active: boolean
   notes: string | null
+  /** Expected weekly hours shown on the bid screen, e.g. "About 25–40 hrs/week" (blank = computed). */
+  hours_note?: string | null
   sort_order: number
   converted_to_core_at?: string | null
   created_at?: string

@@ -3,7 +3,7 @@ import { useData, type LineDraft } from '../../lib/data-context'
 import { useAuth } from '../../lib/auth'
 import {
   addDays, assignmentConflicts, bySeniority, DISPLAY_WEEK, DOW_LONG, formatDate, isActiveOn,
-  lineIneligibility, lineSummary, lineTargetHours, todayISO,
+  lineHours, lineIneligibility, lineSummary, lineTargetHours, todayISO,
 } from '../../lib/scheduling'
 import { Card } from '../../components/ui/Card'
 import { Badge } from '../../components/ui/Badge'
@@ -50,7 +50,7 @@ export function AdminLines({ onBack, onOffer }: { onBack: () => void; onOffer?: 
                     <div className="flex-1 min-w-0">
                       <p className="font-medium text-[#0B1A5C]">{lineSummary(line, days, data.blocksById)}</p>
                       <p className="text-xs text-[#6B7A99]">
-                        {line.is_flex ? 'Hours vary' : `${lineTargetHours(days, data.blocksById)} hrs/week target`}
+                        {line.name} · {lineHours(line, days, data.blocksById).label} · {lineHours(line, days, data.blocksById).steady ? 'Stable' : 'Varies'}
                         {line.positions > 1 && ` · ${line.positions} positions`}
                       </p>
                       <div className="flex flex-wrap gap-1 mt-1.5">
@@ -203,6 +203,9 @@ function LineForm({ line, onDone, onOffer }: { line: Line | null; onDone: () => 
 
         <Card className="space-y-3">
           <Toggle label="Active" checked={form.active} onChange={v => set('active', v)} hint="Inactive lines aren't offered or scheduled." />
+          <Field label="Expected hours (shown when bidding)" hint="e.g. About 25–40 hrs/week. Leave blank to use the target hours.">
+            <TextInput value={form.hours_note ?? ''} onChange={e => set('hours_note', e.target.value || null)} placeholder={form.is_flex ? 'Hours vary' : `About ${hours} hrs/week`} />
+          </Field>
           <Field label="Notes">
             <TextInput value={form.notes ?? ''} onChange={e => set('notes', e.target.value || null)} placeholder="Optional" />
           </Field>

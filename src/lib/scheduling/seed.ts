@@ -3,13 +3,13 @@
 import type { Block, CoverageRequirement, Dow, Line, LineDay } from '../../types'
 
 const blockRows: Omit<Block, 'id' | 'active'>[] = [
-  { code: 'AM', name: 'Early', crew_roles: ['driver'], start_type: 'variable', end_type: 'variable', default_start: null, default_end: null, target_paid_hours: 8, requires_gurney_qual: false, start_rule_note: '30 minutes before your first scheduled pickup', end_rule_note: 'when your assigned trips are complete', sort_order: 10 },
-  { code: 'MID', name: 'Mid', crew_roles: ['driver'], start_type: 'fixed', end_type: 'fixed', default_start: '08:30', default_end: '17:00', target_paid_hours: 8, requires_gurney_qual: false, start_rule_note: null, end_rule_note: null, sort_order: 20 },
-  { code: 'PM', name: 'Late', crew_roles: ['driver'], start_type: 'fixed', end_type: 'variable', default_start: '12:00', default_end: null, target_paid_hours: 8, requires_gurney_qual: false, start_rule_note: null, end_rule_note: 'last scheduled drop-off', sort_order: 30 },
-  { code: 'PMG', name: 'Late Gurney', crew_roles: ['driver', 'attendant'], start_type: 'fixed', end_type: 'variable', default_start: '12:00', default_end: null, target_paid_hours: 8, requires_gurney_qual: true, start_rule_note: null, end_rule_note: 'last scheduled drop-off', sort_order: 40 },
-  { code: 'SAT', name: 'Saturday', crew_roles: ['driver'], start_type: 'fixed', end_type: 'variable', default_start: '12:30', default_end: null, target_paid_hours: 8, requires_gurney_qual: false, start_rule_note: null, end_rule_note: 'last scheduled drop-off', sort_order: 50 },
-  { code: 'SATG', name: 'Saturday Gurney', crew_roles: ['driver', 'attendant'], start_type: 'fixed', end_type: 'variable', default_start: '12:30', default_end: null, target_paid_hours: 8, requires_gurney_qual: true, start_rule_note: null, end_rule_note: 'last scheduled drop-off', sort_order: 60 },
-  { code: 'SUNG', name: 'Sunday Gurney', crew_roles: ['driver', 'attendant'], start_type: 'fixed', end_type: 'variable', default_start: '13:00', default_end: null, target_paid_hours: 6, requires_gurney_qual: true, start_rule_note: null, end_rule_note: 'last scheduled drop-off', sort_order: 70 },
+  { code: 'AM', name: 'Sunrise', crew_roles: ['driver'], start_type: 'variable', end_type: 'variable', default_start: null, default_end: null, target_paid_hours: 8, requires_gurney_qual: false, start_rule_note: '30 minutes before your first scheduled pickup', end_rule_note: 'when your assigned trips are complete', sort_order: 10 },
+  { code: 'MID', name: 'High Noon', crew_roles: ['driver'], start_type: 'fixed', end_type: 'fixed', default_start: '08:00', default_end: '17:00', target_paid_hours: 8, requires_gurney_qual: false, start_rule_note: null, end_rule_note: null, sort_order: 20 },
+  { code: 'PM', name: 'Big Dipper', crew_roles: ['driver'], start_type: 'fixed', end_type: 'variable', default_start: '12:00', default_end: null, target_paid_hours: 6, requires_gurney_qual: false, start_rule_note: null, end_rule_note: 'last scheduled drop-off', sort_order: 30 },
+  { code: 'PMG', name: 'Star', crew_roles: ['driver', 'attendant'], start_type: 'fixed', end_type: 'variable', default_start: '12:00', default_end: null, target_paid_hours: 6, requires_gurney_qual: true, start_rule_note: null, end_rule_note: 'last scheduled drop-off', sort_order: 40 },
+  { code: 'SAT', name: 'Saturday Sunrise', crew_roles: ['driver'], start_type: 'fixed', end_type: 'variable', default_start: '09:00', default_end: null, target_paid_hours: 4, requires_gurney_qual: false, start_rule_note: null, end_rule_note: 'last scheduled drop-off', sort_order: 50 },
+  { code: 'SATG', name: 'Saturday Star', crew_roles: ['driver', 'attendant'], start_type: 'fixed', end_type: 'variable', default_start: '13:30', default_end: null, target_paid_hours: 6, requires_gurney_qual: true, start_rule_note: null, end_rule_note: 'last scheduled drop-off', sort_order: 60 },
+  { code: 'SUNG', name: 'Sunday Star', crew_roles: ['driver', 'attendant'], start_type: 'fixed', end_type: 'variable', default_start: '13:30', default_end: null, target_paid_hours: 6, requires_gurney_qual: true, start_rule_note: null, end_rule_note: 'last scheduled drop-off', sort_order: 70 },
 ]
 
 export const SEED_BLOCKS: Block[] = blockRows.map(b => ({ ...b, id: `blk-${b.code}`, active: true }))
@@ -18,16 +18,17 @@ type LineSeed = Omit<Line, 'id' | 'active' | 'notes' | 'category'> & { days: [Do
 const MON_FRI: Dow[] = [1, 2, 3, 4, 5]
 
 const lineRows: LineSeed[] = [
-  { code: 'FT1', name: 'Mon–Fri Early', employment_type: 'FT', role: 'driver', requires_gurney_qual: false, is_flex: false, positions: 1, sort_order: 10, days: MON_FRI.map(d => [d, 'AM']) },
-  { code: 'FT2', name: 'Mon–Fri Mid', employment_type: 'FT', role: 'driver', requires_gurney_qual: false, is_flex: false, positions: 1, sort_order: 20, days: MON_FRI.map(d => [d, 'MID']) },
-  { code: 'FT3', name: 'Mon–Fri Late Gurney', employment_type: 'FT', role: 'driver', requires_gurney_qual: true, is_flex: false, positions: 1, sort_order: 30, days: MON_FRI.map(d => [d, 'PMG']) },
-  { code: 'PT1', name: 'Mon–Wed Late', employment_type: 'PT', role: 'driver', requires_gurney_qual: false, is_flex: false, positions: 1, sort_order: 40, days: [[1, 'PM'], [2, 'PM'], [3, 'PM']] },
-  { code: 'PT2', name: 'Thu–Fri Late + Saturday', employment_type: 'PT', role: 'driver', requires_gurney_qual: false, is_flex: false, positions: 1, sort_order: 50, days: [[4, 'PM'], [5, 'PM'], [6, 'SAT']] },
-  { code: 'PT3', name: 'Tue–Wed Mid', employment_type: 'PT', role: 'driver', requires_gurney_qual: false, is_flex: false, positions: 1, sort_order: 60, days: [[2, 'MID'], [3, 'MID']] },
-  { code: 'PT4', name: 'Weekend Gurney', employment_type: 'PT', role: 'driver', requires_gurney_qual: true, is_flex: false, positions: 1, sort_order: 70, days: [[6, 'SATG'], [0, 'SUNG']] },
-  { code: 'FLEX', name: 'Flex / on-call', employment_type: 'PT', role: 'driver', requires_gurney_qual: false, is_flex: true, positions: 2, sort_order: 80, days: [] },
-  { code: 'A1', name: 'Mon–Fri Late Gurney', employment_type: 'FT', role: 'attendant', requires_gurney_qual: false, is_flex: false, positions: 1, sort_order: 90, days: MON_FRI.map(d => [d, 'PMG']) },
-  { code: 'A2', name: 'Weekend Gurney', employment_type: 'PT', role: 'attendant', requires_gurney_qual: false, is_flex: false, positions: 1, sort_order: 100, days: [[6, 'SATG'], [0, 'SUNG']] },
+  { code: 'FT1', name: 'Mon–Fri Sunrise', employment_type: 'FT', role: 'driver', requires_gurney_qual: false, is_flex: false, positions: 1, sort_order: 10, hours_note: 'About 30–40 hrs/week', days: MON_FRI.map(d => [d, 'AM']) },
+  { code: 'FT2', name: 'Mon–Fri High Noon', employment_type: 'FT', role: 'driver', requires_gurney_qual: false, is_flex: false, positions: 1, sort_order: 20, hours_note: '40 hrs/week', days: MON_FRI.map(d => [d, 'MID']) },
+  { code: 'FT3', name: 'Mon–Fri High Noon', employment_type: 'FT', role: 'driver', requires_gurney_qual: false, is_flex: false, positions: 1, sort_order: 30, hours_note: '40 hrs/week', days: MON_FRI.map(d => [d, 'MID']) },
+  { code: 'PT1', name: 'Mon–Wed Big Dipper', employment_type: 'PT', role: 'driver', requires_gurney_qual: false, is_flex: false, positions: 1, sort_order: 40, hours_note: 'About 15–24 hrs/week', days: [[1, 'PM'], [2, 'PM'], [3, 'PM']] },
+  { code: 'PT2', name: 'Thu–Fri Big Dipper + Saturday Sunrise', employment_type: 'PT', role: 'driver', requires_gurney_qual: false, is_flex: false, positions: 1, sort_order: 50, hours_note: 'About 14–20 hrs/week', days: [[4, 'PM'], [5, 'PM'], [6, 'SAT']] },
+  { code: 'PT3', name: 'Tue–Wed High Noon', employment_type: 'PT', role: 'driver', requires_gurney_qual: false, is_flex: false, positions: 1, sort_order: 60, hours_note: '16 hrs/week', days: [[2, 'MID'], [3, 'MID']] },
+  { code: 'PT4', name: 'Weekend Stars (gurney)', employment_type: 'PT', role: 'driver', requires_gurney_qual: true, is_flex: false, positions: 1, sort_order: 70, hours_note: 'About 12 hrs/week', days: [[6, 'SATG'], [0, 'SUNG']] },
+  { code: 'PT5', name: 'Mon–Fri Star (gurney)', employment_type: 'PT', role: 'driver', requires_gurney_qual: true, is_flex: false, positions: 1, sort_order: 75, hours_note: 'About 25–40 hrs/week', days: MON_FRI.map(d => [d, 'PMG']) },
+  { code: 'FLEX', name: 'Flex / on-call', employment_type: 'PT', role: 'driver', requires_gurney_qual: false, is_flex: true, positions: 2, sort_order: 80, hours_note: null, days: [] },
+  { code: 'A1', name: 'Mon–Fri Star (attendant)', employment_type: 'PT', role: 'attendant', requires_gurney_qual: false, is_flex: false, positions: 1, sort_order: 90, hours_note: 'About 25–40 hrs/week', days: MON_FRI.map(d => [d, 'PMG']) },
+  { code: 'A2', name: 'Weekend Stars (attendant)', employment_type: 'PT', role: 'attendant', requires_gurney_qual: false, is_flex: false, positions: 1, sort_order: 100, hours_note: 'About 12 hrs/week', days: [[6, 'SATG'], [0, 'SUNG']] },
 ]
 
 export const SEED_LINES: Line[] = lineRows.map(({ days: _days, ...l }) => ({

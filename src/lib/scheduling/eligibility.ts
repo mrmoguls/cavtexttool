@@ -2,19 +2,19 @@ import type { Availability, Employee, Line, LineDay } from '../../types'
 import { DISPLAY_WEEK, DOW_LONG } from './time'
 
 export interface LineEligibilityOptions {
-  /** PT employee opted in to "want full-time" for this bid period. */
+  /** No longer used: anyone can bid on any line they're qualified for. Kept for older callers. */
   wantsFullTime?: boolean
 }
 
 /**
  * Why `emp` can't hold `line`. Empty array = eligible.
  * Rules: attendant lines → attendants only; driver lines → drivers only; gurney lines need the
- * qualification; FT lines → FT employees (or PT who opted in to full-time); PT lines → PT employees.
+ * qualification. Full-time and part-time employees can bid on any line they're qualified for.
  */
 export function lineIneligibility(
   emp: Pick<Employee, 'role' | 'employment_type' | 'gurney_qualified' | 'active' | 'bids_on_lines'>,
   line: Pick<Line, 'role' | 'employment_type' | 'requires_gurney_qual' | 'active'>,
-  opts: LineEligibilityOptions = {},
+  _opts: LineEligibilityOptions = {},
 ): string[] {
   const reasons: string[] = []
   if (!emp.active) reasons.push('Employee is inactive.')
@@ -25,12 +25,6 @@ export function lineIneligibility(
 
   if (line.requires_gurney_qual && !emp.gurney_qualified) reasons.push('Requires gurney qualification.')
 
-  if (line.employment_type === 'FT' && emp.employment_type === 'PT' && !opts.wantsFullTime) {
-    reasons.push('Full-time line — part-time employees only if they opt in to full-time.')
-  }
-  if (line.employment_type === 'PT' && emp.employment_type === 'FT') {
-    reasons.push('Part-time line — full-time employees bid on full-time lines.')
-  }
   if (emp.bids_on_lines === false) reasons.push('Backup drivers pick up open shifts instead of bidding on lines.')
   return reasons
 }
