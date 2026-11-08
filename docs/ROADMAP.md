@@ -33,7 +33,7 @@ One mobile-first app (PWA) that is the driver's **single starting point for work
 | Dispatch alert when an open shift has no taker within 24 hours | 1 | ✅ Built (banner + daily notification) |
 | Assignment considers **hours available** | 1 | 🟡 Partly: availability days and seniority are used; weekly hour caps (e.g. "no more than 20 hrs") are only in free-text notes |
 | Time-off requests (short notice flagged; approved days become open shifts) | 1 | ✅ Built |
-| Linked-tile home screen (admin-editable) + links on today's shift card | 1 | ✅ Built — time clock, Coggno, handbook and Call Dispatch set; Bambi, accident instructions and repair quote links still to add |
+| Linked-tile home screen (admin-editable) + links on today's shift card | 1 | ✅ Built — time clock, Coggno, handbook, Driver FAQ and Call Dispatch set; Bambi, accident instructions and repair quote links still to add |
 | Always-visible bottom tabs; bell counts everything waiting ("Needs your attention") | 1 | ✅ Built |
 | Pre-trip vehicle inspection | 1 | Done in **Bambi**; not in CAV Hub (no tile) |
 | Incident / accident reports with photos | 2 | ⬜ Not started |
@@ -47,7 +47,7 @@ One mobile-first app (PWA) that is the driver's **single starting point for work
 
 ## Next steps
 1. **Try it out (now, demo):** Amber walks through AM starts, the Bambi week and requests; one or two drivers try schedule, confirm, give-up and time off.
-2. **Go live (setup, no new building):** Supabase project + migrations 001–009, PIN login and sheet sync functions, Google Sheet connection, scheduled alerts, hosting on Netlify, phone notification keys. Steps in SETUP.md.
+2. **Go live (setup, no new building):** Supabase project + migrations 001–011, PIN login and sheet sync functions, Google Sheet connection, scheduled alerts, hosting on Netlify, phone notification keys. Steps in SETUP.md.
 3. **Trial (1–2 weeks):** Amber + 3–4 drivers on the live app alongside today's texting and Bambi routine.
 4. **Roll out:** sign-up session so everyone installs the app, turns on notifications and stays signed in to Bambi, BBSI and Coggno on their phone. Then stop texting start times.
 5. **Then Phase 2:** incident/accident reports with photos, "Ask a question" helper, Coggno "trainings due", fuel receipts.
