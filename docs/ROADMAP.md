@@ -21,7 +21,7 @@ One mobile-first app (PWA) that is the driver's **single starting point for work
 | Login and roles (name + PIN, driver / attendant / dispatch / admin, drivers who also dispatch) | 1 | ✅ Built |
 | Announcements with "I've read this" acknowledgment | 1 | ✅ Built (existed before scheduling work) |
 | Schedule view (list + week), shift detail with start/end wording | 1 | ✅ Built |
-| Shift swaps, give-ups, open-shift pickup, sick call-outs, dispatch approvals, overtime warnings | 1 | ✅ Built |
+| Shift swaps, give-ups, open-shift pickup, dispatch approvals, overtime warnings; sick calls by phone/text to dispatch, recorded by dispatch | 1 | ✅ Built |
 | Availability | 1 | ✅ Read from the Google Sheet (Schedule tab); drivers can't edit it in the app yet |
 | Line bidding by seniority; seniority from the Google Sheet (Roster tab) | 1 | ✅ Built |
 | Daily roster for Bambi, AM start-time posting | 1 | ✅ Built |
@@ -107,6 +107,7 @@ _Note: the scheduling work (shift scheduling, shift board, line bidding) was bui
 ## Decision log
 - **2026-11-07:** Chose "one front door" hub model: native features for what we own, linked tiles for Bambi, payroll time clock, training (Coggno), and other tools. Decided not to rebuild ride management or payroll timekeeping for now.
 - **2026-11-07:** Amber keeps entering teams in Bambi, weekly (clone a day). CAV Hub lists every change to an entered week as a Bambi update. Start times are posted the night before from the first pickup (−30 min) and drivers confirm in the app instead of by text.
+- **2026-11-08:** No sick-call button for drivers. Sick calls must be a call or text to the dispatch phone, so they talk to a person; dispatch records it in the app.
 - **2026-11-08:** Knowledge base = one Google Doc (Driver FAQ), linked as a tile now. The AI "Ask a question" helper will be built into CAV Hub in Phase 2 (drivers are already signed in, so questions can be routed to Ryan and answers sent back) rather than as a separate public bot.
 - **2026-11-08:** Phone notifications use free web push (no texting service). Everything in the bell, messages and announcements go to the phone; signing out stops them on that phone.
 - **2026-11-07:** The app is named **CAV Hub**.

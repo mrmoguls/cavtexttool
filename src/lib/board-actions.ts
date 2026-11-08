@@ -127,20 +127,6 @@ function me(): string {
 }
 
 export const driverActions = {
-  async callOutSick(shiftId: string, note: string | null) {
-    if (!isDemoMode) return void await rpc('call_out_sick', { p_shift: shiftId, p_note: note })
-    const meId = me()
-    const s = await getShift(shiftId)
-    if (s.employee_id !== meId || s.status !== 'scheduled') throw new Error('You can only call out of your own scheduled shift.')
-    if (s.date < todayISO()) throw new Error('That shift has already passed.')
-    const who = (await getEmployee(meId)).name
-    await cancelActive(shiftId, null, 'Called out sick')
-    await db.update('shifts', { id: shiftId }, { employee_id: null, status: 'open', opened_at: new Date().toISOString() })
-    await db.insert('shift_requests', reqRow({ type: 'callout', status: 'approved', shift_id: shiftId, requester_id: meId, previous_employee_id: meId, note, decided_at: new Date().toISOString() }))
-    await notifyStaff('callout', `${who} called out sick: ${await shiftLabel(s)}`, note || 'The shift is now open for pickup.', shiftId)
-    await announceOpenShift({ ...s, employee_id: null, status: 'open' }, meId)
-  },
-
   async postGiveup(shiftId: string, note: string | null) {
     if (!isDemoMode) return void await rpc('post_giveup', { p_shift: shiftId, p_note: note })
     const meId = me()
@@ -408,6 +394,25 @@ export async function assignShift(shiftId: string, employeeId: string | null, op
   if (s.employee_id && !opts.quiet) await notify(s.employee_id, 'shift_removed', `Dispatch took you off ${label}`, opts.note ?? null, s.id)
   if (employeeId) await notify(employeeId, 'shift_assigned', `Dispatch added you to ${label}`, opts.note ?? null, s.id)
   else await announceOpenShift({ ...s, employee_id: null, status: 'open' }, s.employee_id)
+}
+
+/**
+ * Dispatch records a sick call (the driver called or texted the dispatch phone): the driver comes
+ * off the shift, it becomes an open shift, and the sick call shows in the shift's history.
+ */
+export async function recordSickCall(shiftId: string, opts: DecisionOptions) {
+  const s = await getShift(shiftId)
+  if (!s.employee_id || s.status !== 'scheduled') throw new Error('Nobody is scheduled on this shift.')
+  const now = new Date().toISOString()
+  const label = await shiftLabel(s)
+  await cancelActive(s.id, null, 'Called out sick')
+  await db.update('shifts', { id: s.id }, { employee_id: null, status: 'open', opened_at: now })
+  await db.insert('shift_requests', reqRow({
+    type: 'callout', status: 'approved', shift_id: s.id, requester_id: s.employee_id, previous_employee_id: s.employee_id,
+    note: opts.note ?? null, decided_by: opts.by, decided_at: now,
+  }))
+  await notify(s.employee_id, 'shift_removed', `Sick call recorded: ${label}`, "Dispatch took you off this shift. Feel better.", s.id)
+  await announceOpenShift({ ...s, employee_id: null, status: 'open' }, s.employee_id)
 }
 
 /** Dispatch adds a one-off shift (for an uncovered slot), for a person or as an open shift. */

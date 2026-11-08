@@ -5,6 +5,7 @@ import { Button } from '../ui/Button'
 import { Warning } from '../ui/Form'
 import type { Shift } from '../../types'
 import { CheckCircle } from 'lucide-react'
+import { dispatchPhone } from '../../lib/dispatch-phone'
 
 /** Start times dispatch posted (variable starts like AM) that this driver still needs to confirm. Fixed-time shifts don't need it. */
 export function useStartsToConfirm(employeeId: string) {
@@ -38,7 +39,7 @@ export function ConfirmStartCard({ shift }: { shift: Shift }) {
       <Button fullWidth size="lg" onClick={confirm} disabled={busy}>
         <CheckCircle size={18} /> {busy ? 'Confirming…' : `Confirm — I'll be there at ${formatTime(shift.start_time)}`}
       </Button>
-      <p className="text-xs text-[#6B7A99]">Can't make it? Use "Call out sick" on the shift, or message dispatch.</p>
+      <p className="text-xs text-[#6B7A99]">Can't make it? Call or text dispatch at {dispatchPhone(data.settings).display}.</p>
       {error && <Warning>{error}</Warning>}
     </div>
   )

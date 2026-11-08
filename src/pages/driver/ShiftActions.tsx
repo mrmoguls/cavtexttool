@@ -6,15 +6,14 @@ import { Card } from '../../components/ui/Card'
 import { Button } from '../../components/ui/Button'
 import { Field, Select, TextArea, Warning } from '../../components/ui/Form'
 import { StatusPill } from '../../components/schedule/ShiftBits'
-import { useConfirm } from '../../components/ui/ConfirmDialog'
 import type { Shift } from '../../types'
-import { Repeat, HandHelping, Thermometer, MessageSquare } from 'lucide-react'
+import { Repeat, HandHelping, Phone, MessageSquare } from 'lucide-react'
+import { dispatchPhone } from '../../lib/dispatch-phone'
 
 type Mode = 'menu' | 'giveup' | 'swap'
 
 export function ShiftActions({ shift, onMessageDispatch }: { shift: Shift; onMessageDispatch?: () => void }) {
   const data = useData()
-  const confirm = useConfirm()
   const [mode, setMode] = useState<Mode>('menu')
   const [note, setNote] = useState('')
   const [candidates, setCandidates] = useState<SwapCandidate[] | null>(null)
@@ -32,6 +31,7 @@ export function ShiftActions({ shift, onMessageDispatch }: { shift: Shift; onMes
     return done ? <Card><div className="rounded-xl bg-[#E8F5EE] text-[#2E7D52] px-3 py-2 text-sm font-medium">{done}</div></Card> : null
   }
   const late = insideCutoff(shift, block, cutoff)
+  const phone = dispatchPhone(data.settings)
 
   async function run(fn: () => Promise<void>, message: string) {
     setBusy(true)
@@ -56,16 +56,6 @@ export function ShiftActions({ shift, onMessageDispatch }: { shift: Shift; onMes
     catch (err) { setError(err instanceof Error ? err.message : 'Could not load shifts to trade for.') }
   }
 
-  async function callOut() {
-    const ok = await confirm({
-      title: 'Call out sick?',
-      body: <><p>Dispatch is notified right away and this shift opens up for others to pick up.</p><p>You don't need to find your own replacement.</p></>,
-      confirmLabel: 'Call out sick',
-      danger: true,
-    })
-    if (ok) await run(() => data.callOutSick(shift.id, note.trim() || null), "You're called out. Dispatch has been notified. Feel better.")
-  }
-
   return (
     <Card className="space-y-3">
       <p className="text-xs font-semibold text-[#6B7A99] uppercase tracking-wide">Can't work it?</p>
@@ -78,8 +68,8 @@ export function ShiftActions({ shift, onMessageDispatch }: { shift: Shift; onMes
         </div>
       ) : late ? (
         <div className="rounded-xl bg-[#EEF1F8] px-3 py-2 text-sm text-[#1B2E6B] space-y-2">
-          <p>This shift starts within {cutoff} hours, so it can't go on the shift board. Contact dispatch directly to change it.</p>
-          {onMessageDispatch && <Button size="sm" variant="secondary" onClick={onMessageDispatch}><MessageSquare size={14} /> Message dispatch</Button>}
+          <p>This shift starts within {cutoff} hours, so it can't go on the shift board. Call or text dispatch to change it.</p>
+          {onMessageDispatch && <Button size="sm" variant="ghost" className="-ml-2" onClick={onMessageDispatch}><MessageSquare size={14} /> Message dispatch in the app</Button>}
         </div>
       ) : mode === 'giveup' ? (
         <div className="space-y-2">
@@ -121,7 +111,13 @@ export function ShiftActions({ shift, onMessageDispatch }: { shift: Shift; onMes
       )}
 
       {mode === 'menu' && (
-        <Button fullWidth variant="ghost" disabled={busy} onClick={callOut}><Thermometer size={16} /> Call out sick</Button>
+        <div className="rounded-xl bg-[#EEF1F8] px-3 py-2.5 space-y-2">
+          <p className="text-sm text-[#1B2E6B]"><b>Sick or can't make it?</b> Call or text dispatch at {phone.display}. They'll take care of the shift.</p>
+          <div className="grid grid-cols-2 gap-2">
+            <a href={phone.tel} className="flex items-center justify-center gap-1.5 rounded-xl bg-white border border-[#D8DFEF] py-2 text-sm font-semibold text-[#0B1A5C]"><Phone size={15} /> Call</a>
+            <a href={phone.sms} className="flex items-center justify-center gap-1.5 rounded-xl bg-white border border-[#D8DFEF] py-2 text-sm font-semibold text-[#0B1A5C]"><MessageSquare size={15} /> Text</a>
+          </div>
+        </div>
       )}
       {error && <Warning>{error}</Warning>}
     </Card>

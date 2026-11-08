@@ -6,7 +6,7 @@ import { isDemoMode, supabase } from './supabase'
 import * as bidding from './bidding-actions'
 import * as people from './people-actions'
 import type { SheetValues, SyncPlan } from './sheet-sync'
-import { assignShift, createShift, decideRequest, driverActions, loadShiftHistory, type DecisionOptions, type SwapCandidate } from './board-actions'
+import { assignShift, createShift, recordSickCall, decideRequest, driverActions, loadShiftHistory, type DecisionOptions, type SwapCandidate } from './board-actions'
 import type {
   Announcement, AnnouncementView, AppSetting, Block, CoverageRequirement, CrewRole, Dow, Employee,
   EmployeeContact, Line, LineAssignment, LineDay, Message, Shift, AppNotification, ShiftRequest,
@@ -138,7 +138,6 @@ interface DataAPI {
 
   // Shift board
   requests: ShiftRequest[]
-  callOutSick: (shiftId: string, note: string | null) => Promise<void>
   postGiveup: (shiftId: string, note: string | null) => Promise<void>
   swapCandidates: (shiftId: string) => Promise<SwapCandidate[]>
   proposeSwap: (shiftId: string, swapShiftId: string, note: string | null) => Promise<void>
@@ -148,6 +147,8 @@ interface DataAPI {
   cancelRequest: (requestId: string) => Promise<void>
   decideRequest: (requestId: string, approve: boolean, opts: DecisionOptions) => Promise<void>
   assignShift: (shiftId: string, employeeId: string | null, opts: DecisionOptions) => Promise<void>
+  /** Dispatch records a sick call that came in by phone or text. */
+  recordSickCall: (shiftId: string, opts: DecisionOptions) => Promise<void>
   createShift: (draft: { date: string; block_id: string; role: CrewRole; employee_id: string | null }, opts: DecisionOptions) => Promise<void>
   loadShiftHistory: typeof loadShiftHistory
 
@@ -534,7 +535,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
     unreadNotifications: tables.notifications.filter(n => !n.read_at).length,
 
     requests: tables.shift_requests,
-    callOutSick: (id, note) => board(() => driverActions.callOutSick(id, note)),
     postGiveup: (id, note) => board(() => driverActions.postGiveup(id, note)),
     swapCandidates: (id) => driverActions.swapCandidates(id),
     proposeSwap: (id, other, note) => board(() => driverActions.proposeSwap(id, other, note)),
@@ -544,6 +544,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     cancelRequest: (id) => board(() => driverActions.cancelRequest(id)),
     decideRequest: (id, approve, opts) => board(() => decideRequest(id, approve, opts)),
     assignShift: (id, emp, opts) => board(() => assignShift(id, emp, opts)),
+    recordSickCall: (id, opts) => board(() => recordSickCall(id, opts)),
     createShift: (draft, opts) => board(() => createShift(draft, opts)),
     loadShiftHistory,
 

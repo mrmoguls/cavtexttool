@@ -31,6 +31,7 @@ Each one should finish with "Success". They're safe to run again if you're unsur
 9. `supabase/migrations/008_start_confirmations_and_bambi.sql` — start-time confirmations + weekly Bambi checklist
 10. `supabase/migrations/009_push_notifications.sql` — phone notifications (does nothing until Step 7 is done)
 11. `supabase/migrations/010_driver_faq_tile.sql` — Driver FAQ tile (links to the FAQ Google Doc)
+12. `supabase/migrations/011_sick_calls_by_phone.sql` — sick calls go through dispatch by phone/text, not an app button
 
 > **Already running the app?** Do the same: run 001 then 002. Your existing drivers become
 > employees automatically, but **nobody can sign in until they have a phone number on file**
@@ -300,7 +301,7 @@ sees them the next time they open the app.
 - **Dispatch → AM starts** by 3:00 pm each day for the next day's early shifts (post Monday's on
   Friday if nobody works the weekend). A banner appears at 2:00 pm if any are missing.
 - **Dispatch → Roster → Copy** pastes the day's roster into Bambi or a text. Tap any row to
-  reassign it, make it an open shift, fill an uncovered slot, or see its history.
+  reassign it, make it an open shift, **record a sick call**, fill an uncovered slot, or see its history.
 - **Dispatch → Requests** is the approval queue: give-ups, trades, open-shift requests and sick
   calls. Overtime (over 8 hrs/day or 40 hrs/week, or a shift over 10 hrs) shows as a warning;
   approving anyway needs a reason, which is saved.
@@ -357,8 +358,11 @@ installed home-screen app behaves differently on each.
 - Drivers can give up or trade a shift only if it starts **more than 48 hours** from now. Inside
   that, the app tells them to contact dispatch.
 - Trades need the coworker to accept first, then dispatch approves.
-- **Call out sick** skips the board: dispatch is notified, the shift becomes open, and eligible
-  coworkers are told. Nobody has to find their own replacement.
+- **Sick calls go to a person.** There's no call-out button for drivers: each shift shows
+  **Call** / **Text** buttons for the dispatch phone (530-221-4826; `dispatch_phone` in settings).
+  Dispatch then opens the shift → **Record a sick call**: the driver comes off it, it becomes an
+  open shift, eligible coworkers are told, and it's kept in the shift's history. Nobody has to
+  find their own replacement.
 - Open shifts (from sick calls, released give-ups, or dispatch) can be requested any time; dispatch
   picks who gets it.
 - Optional: set `pt_first_open_shifts` to `true` in the `app_settings` table to give part-time

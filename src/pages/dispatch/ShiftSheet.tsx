@@ -42,6 +42,16 @@ export function ShiftSheet({ shiftId, onBack }: { shiftId: string; onBack: () =>
     try { await data.assignShift(shift!.id, null, { by: me?.id ?? null }) } catch (err) { setError(err instanceof Error ? err.message : 'Could not update.') }
   }
 
+  async function sickCall() {
+    const ok = await confirm({
+      title: `Record a sick call for ${name(shift!.employee_id)}?`,
+      body: 'They come off this shift, it becomes an open shift, and eligible people are notified. The sick call is kept in the shift history.',
+      confirmLabel: 'Record sick call', danger: true,
+    })
+    if (!ok) return
+    try { await data.recordSickCall(shift!.id, { by: me?.id ?? null }) } catch (err) { setError(err instanceof Error ? err.message : 'Could not update.') }
+  }
+
   return (
     <>
       <SubHeader title={`${formatDate(shift.date)} · ${block.code}`} onBack={onBack} />
@@ -64,6 +74,9 @@ export function ShiftSheet({ shiftId, onBack }: { shiftId: string; onBack: () =>
                 <Button className="flex-1" variant="secondary" onClick={() => setAssigning(true)}>{shift.employee_id ? 'Reassign' : 'Assign someone'}</Button>
                 {shift.employee_id && <Button variant="secondary" onClick={makeOpen}>Make open</Button>}
               </div>
+            )}
+          {!assigning && shift.employee_id && shift.status === 'scheduled' && (
+            <Button fullWidth variant="ghost" onClick={sickCall}>Record a sick call</Button>
             )}
           {error && <Warning>{error}</Warning>}
         </Card>
