@@ -32,7 +32,8 @@ Each one should finish with "Success". They're safe to run again if you're unsur
 10. `supabase/migrations/009_push_notifications.sql` — phone notifications (does nothing until Step 7 is done)
 11. `supabase/migrations/010_driver_faq_tile.sql` — Driver FAQ tile (links to the FAQ Google Doc)
 12. `supabase/migrations/011_sick_calls_by_phone.sql` — sick calls go through dispatch by phone/text, not an app button
-13. `supabase/migrations/012_sun_and_sky_shifts.sql` — shift names (Sunrise, High Noon, Big Dipper, Stars), new times, two High Noon lines, open bidding
+13. `supabase/migrations/012_sun_and_sky_shifts.sql` — open bidding (anyone bids any line they're qualified for), expected-hours note on lines
+14. `supabase/migrations/013_shift_windows.sql` — the Driver Shift Windows plan: Sunrise 1 & 2, Midday 1, Midday 2 (on call), Star 1 (gurney) & 2, gurney attendant, weekend Star crew, FLEX
 
 > **Already running the app?** Do the same: run 001 then 002. Your existing drivers become
 > employees automatically, but **nobody can sign in until they have a phone number on file**

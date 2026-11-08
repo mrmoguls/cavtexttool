@@ -15,16 +15,17 @@ const bids = (empId: string, ...codes: string[]): Bid[] =>
 
 describe('availability', () => {
   const monWed: Availability = { 0: 0, 1: 1, 2: 1, 3: 0.5, 4: 0, 5: 0, 6: 0 }
+  const monThu: Availability = { 0: 0, 1: 1, 2: 1, 3: 0.5, 4: 1, 5: 0, 6: 0 }
   it('blocks unavailable days, warns on partial', () => {
-    expect(availabilityFit(monWed, days('PT1'))).toEqual({ blocked: [], partial: ['Wednesday'] })
+    expect(availabilityFit(monThu, days('FT5'))).toEqual({ blocked: [], partial: ['Wednesday'] })
     expect(availabilityFit(monWed, days('FT1'))).toEqual({ blocked: ['Thursday', 'Friday'], partial: ['Wednesday'] })
     expect(availabilityFit(null, days('FT1'))).toEqual({ blocked: [], partial: [] })
   })
   it('combined problems', () => {
     const rosa = emp('Rosa', { employment_type: 'PT' })
-    expect(lineBidProblems(rosa, line('PT1'), days('PT1'), monWed)).toEqual({ problems: [], warnings: ['Only partly available Wednesday.'] })
-    expect(lineBidProblems(rosa, line('PT2'), days('PT2'), monWed).problems).toEqual(['Not available Thursday, Friday, Saturday (schedule sheet).'])
-    expect(lineBidProblems(emp('Kev', { employment_type: 'PT', bids_on_lines: false }), line('PT1'), days('PT1'), null).problems)
+    expect(lineBidProblems(rosa, line('FT5'), days('FT5'), monThu)).toEqual({ problems: [], warnings: ['Only partly available Wednesday.'] })
+    expect(lineBidProblems(rosa, line('FT2'), days('FT2'), monWed).problems).toEqual(['Not available Thursday, Friday (schedule sheet).'])
+    expect(lineBidProblems(emp('Kev', { employment_type: 'PT', bids_on_lines: false }), line('FT5'), days('FT5'), null).problems)
       .toEqual(['Backup drivers pick up open shifts instead of bidding on lines.'])
   })
 })
@@ -52,17 +53,17 @@ describe('autoAssign', () => {
 
   it('anyone can win any line they are qualified for; seniority decides', () => {
     // Senior PT is the most senior and takes the full-time line; a full-time employee can take a part-time line.
-    const b = [...bids(senior.id, 'FT1', 'PT1'), ...bids(ptSenior.id, 'FT1', 'FT2'), ...bids(ptJunior.id, 'FT2', 'PT1')]
+    const b = [...bids(senior.id, 'FT1', 'FLEX'), ...bids(ptSenior.id, 'FT1', 'FT2'), ...bids(ptJunior.id, 'FT2', 'FLEX')]
     const r = autoAssign({ ...base, employees: [senior, ptSenior, ptJunior], bids: b, optins: [] })
     const got = Object.fromEntries(r.map(x => [x.employee_id, x.line_id ? SEED_LINES.find(l => l.id === x.line_id)!.code : null]))
-    expect(got).toEqual({ 'Senior PT': 'FT1', 'Senior FT': 'PT1', 'Junior PT': 'FT2' })
+    expect(got).toEqual({ 'Senior PT': 'FT1', 'Senior FT': 'FLEX', 'Junior PT': 'FT2' })
   })
 
   it('respects positions (FLEX holds two) and availability', () => {
     const a = emp('A', { employment_type: 'PT', seniority_date: '2001-01-01' })
     const bb = emp('B', { employment_type: 'PT', seniority_date: '2002-01-01' })
     const c = emp('C', { employment_type: 'PT', seniority_date: '2003-01-01' })
-    const b = [...bids('A', 'FLEX'), ...bids('B', 'FLEX'), ...bids('C', 'FLEX', 'PT2')]
+    const b = [...bids('A', 'FLEX'), ...bids('B', 'FLEX'), ...bids('C', 'FLEX', 'FT2')]
     const avail = new Map<string, Availability>([['C', { 1: 1, 2: 1, 3: 1, 4: 0, 5: 0, 6: 0, 0: 0 }]])
     const r = autoAssign({ ...base, availability: avail, employees: [a, bb, c], bids: b, optins: [] })
     expect(r.map(x => x.line_id ? SEED_LINES.find(l => l.id === x.line_id)!.code : null)).toEqual(['FLEX', 'FLEX', null])

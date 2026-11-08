@@ -29,6 +29,7 @@ One mobile-first app (PWA) that is the driver's **single starting point for work
 | Start-time confirmation by drivers (replaces texting and thumbs-up replies) | 1 | ✅ Built |
 | Phone push notifications (bell items, messages, announcements; tap opens the right screen; app-icon badge) | 1 | ✅ Built — needs the keys from SETUP.md Step 7 |
 | Schedule export for Bambi (Excel with 3 sheets + CSV: weekly availability, dated shifts, week at a glance) | 1 | ✅ Built — match Bambi's import template once we have it |
+| Shift windows (start-time ranges per window), Midday 2 call-ins, "shorten the edges" order, weekly hours per full-timer (30–40) | 1 | ⬜ Not built — in the Shift Windows proposal; the app has the lines and posted start times but not these rules |
 | Open shifts to current staff wanting more hours **before new hires** | 1 | 🟡 Partly: a "part-time first" window exists; no "wants more hours" flag yet |
 | Dispatch alert when an open shift has no taker within 24 hours | 1 | ✅ Built (banner + daily notification) |
 | Assignment considers **hours available** | 1 | 🟡 Partly: availability days and seniority are used; weekly hour caps (e.g. "no more than 20 hrs") are only in free-text notes |
@@ -46,7 +47,7 @@ One mobile-first app (PWA) that is the driver's **single starting point for work
 
 ## Next steps
 1. **Try it out (now, demo):** Amber walks through AM starts, the Bambi week and requests; one or two drivers try schedule, confirm, give-up and time off.
-2. **Go live (setup, no new building):** Supabase project + migrations 001–012, PIN login and sheet sync functions, Google Sheet connection, scheduled alerts, hosting on Netlify, phone notification keys. Steps in SETUP.md.
+2. **Go live (setup, no new building):** Supabase project + migrations 001–013, PIN login and sheet sync functions, Google Sheet connection, scheduled alerts, hosting on Netlify, phone notification keys. Steps in SETUP.md.
 3. **Trial (1–2 weeks):** Amber + 3–4 drivers on the live app alongside today's texting and Bambi routine.
 4. **Roll out:** sign-up session so everyone installs the app, turns on notifications and stays signed in to Bambi, BBSI and Coggno on their phone. Then stop texting start times.
 5. **Then Phase 2:** incident/accident reports with photos, "Ask a question" helper, Coggno "trainings due".
@@ -104,6 +105,7 @@ _Note: the scheduling work (shift scheduling, shift board, line bidding) was bui
 ## Decision log
 - **2026-11-07:** Chose "one front door" hub model: native features for what we own, linked tiles for Bambi, payroll time clock, training (Coggno), and other tools. Decided not to rebuild ride management or payroll timekeeping for now.
 - **2026-11-07:** Amber keeps entering teams in Bambi, weekly (clone a day). CAV Hub lists every change to an entered week as a Bambi update. Start times are posted the night before from the first pickup (−30 min) and drivers confirm in the app instead of by text.
+- **2026-11-08 (later):** The **Driver Shift Windows** proposal (Nov 2026) is the source of truth, with names Sunrise, Midday and Star. App lines now match it: Sunrise 1 & 2, Midday 1 (FT, 8:30–5), Midday 2 (PT, on call Mon–Thu), Star 1 (FT gurney van), Star 2 (FT, Mon–Thu), gurney attendant (PT, 1 pm), weekend Star crew, FLEX ×2. Floating starts are posted by 3 pm the day before. No new features were added for windows (start ranges), on-call call-ins or weekly-hours reports; those are noted as possible later work. Supersedes the next entry.
 - **2026-11-08:** Shift names: Sunrise (AM), High Noon (8:00–5:00), Big Dipper (PM), and Stars for gurney runs (Star, Saturday Star, Sunday Star); Saturday Sunrise is the 9–1 wheelchair van. Only High Noon has steady hours, so there are two full-time High Noon lines; the weekday gurney lines (PT5, A1) are part-time with hours that depend on orders (about 25–40). Anyone can bid on any line they're qualified for; seniority decides. Each line shows expected hours and Stable/Varies on the bid screen.
 - **2026-11-08:** Dropped fuel receipt photos. Drivers keep printing the receipt and turning it in with their driver log in the shop basket.
 - **2026-11-08:** No sick-call button for drivers. Sick calls must be a call or text to the dispatch phone, so they talk to a person; dispatch records it in the app.

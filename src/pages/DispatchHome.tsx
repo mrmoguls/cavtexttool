@@ -49,7 +49,7 @@ export function DispatchHome({ onSignOut, onSwitch }: DispatchHomeProps) {
   const attention: AttentionItem[] = [
     { key: 'requests', label: 'Requests waiting for a decision', count: pendingRequests, onOpen: go('requests') },
     { key: 'open', label: 'Open shifts within 24 hours, nobody on them', count: openSoon.length, onOpen: go('requests') },
-    { key: 'starts', label: 'AM start times to post or confirm', count: startsBadge, onOpen: go('starts') },
+    { key: 'starts', label: 'Start times to post or confirm', count: startsBadge, onOpen: go('starts') },
     { key: 'inbox', label: 'Unread messages', count: unreadDispatch, onOpen: go('inbox') },
     { key: 'bambi', label: 'Updates to make in Bambi', count: bambiUpdates.length, onOpen: () => { setShowNotifications(false); setShowBambi(true) } },
   ]
@@ -94,7 +94,7 @@ export function DispatchHome({ onSignOut, onSwitch }: DispatchHomeProps) {
   const tabs = [
     { key: 'roster', label: 'Roster', icon: <ClipboardList size={20} /> },
     { key: 'requests', label: 'Requests', icon: <Repeat size={20} />, badge: pendingRequests },
-    { key: 'starts', label: 'AM starts', icon: <Clock size={20} />, badge: startsBadge },
+    { key: 'starts', label: 'Starts', icon: <Clock size={20} />, badge: startsBadge },
     { key: 'announcements', label: 'Posts', icon: <Megaphone size={20} /> },
     { key: 'inbox', label: 'Inbox', icon: <MessageSquare size={20} />, badge: unreadDispatch },
     ...(isAdmin ? [{ key: 'admin', label: 'Admin', icon: <Settings size={20} /> }] : []),

@@ -33,14 +33,14 @@ describe('generateShifts', () => {
     expect(out.every(s => s.block_id === block('AM').id && s.start_time === null && s.target_hours === 8)).toBe(true)
   })
   it('copies fixed times and roles; weekend gurney attendant', () => {
-    const out = generateShifts({ ...base, assignments: [assign('FT2', 'e2'), assign('A2', 'e3')], from: '2026-11-09', to: '2026-11-15' })
+    const out = generateShifts({ ...base, assignments: [assign('FT3', 'e2'), assign('A2', 'e3')], from: '2026-11-09', to: '2026-11-15' })
     const mid = out.find(s => s.employee_id === 'e2')!
-    expect([mid.start_time, mid.end_time]).toEqual(['08:00', '17:00'])
+    expect([mid.start_time, mid.end_time]).toEqual(['08:30', '17:00'])
     const att = out.filter(s => s.employee_id === 'e3')
-    expect(att.map(s => [s.date, s.role, s.target_hours])).toEqual([['2026-11-14', 'attendant', 6], ['2026-11-15', 'attendant', 6]])
+    expect(att.map(s => [s.date, s.role, s.target_hours])).toEqual([['2026-11-14', 'attendant', 6], ['2026-11-15', 'attendant', 4.5]])
   })
   it('respects assignment dates, skips existing and flex', () => {
-    const a = assign('PT1', 'e4', '2026-11-10', '2026-11-10')
+    const a = assign('FT5', 'e4', '2026-11-10', '2026-11-10')
     expect(generateShifts({ ...base, assignments: [a], from: '2026-11-09', to: '2026-11-15' }).map(s => s.date)).toEqual(['2026-11-10'])
     expect(generateShifts({ ...base, assignments: [a], existing: [{ assignment_id: a.id, date: '2026-11-10' }], from: '2026-11-09', to: '2026-11-15' })).toEqual([])
     expect(generateShifts({ ...base, assignments: [assign('FLEX', 'e5')], from: '2026-11-09', to: '2026-11-15' })).toEqual([])
@@ -48,7 +48,7 @@ describe('generateShifts', () => {
 })
 
 describe('AM start status', () => {
-  const shifts = generateShifts({ ...base, assignments: [assign('FT1', 'e1'), assign('FT2', 'e2')], from: '2026-11-10', to: '2026-11-10' }).map(toShift)
+  const shifts = generateShifts({ ...base, assignments: [assign('FT1', 'e1'), assign('FT3', 'e2')], from: '2026-11-10', to: '2026-11-10' }).map(toShift)
   const run = (today: string, now: string, list = shifts) =>
     amStartStatus({ date: '2026-11-10', shifts: list, blocksById, today, now })
   it('pending, warning at 2 pm, overdue at 3 pm', () => {
@@ -66,21 +66,21 @@ describe('AM start status', () => {
 
 describe('roster', () => {
   const emps = [{ id: 'e1', name: 'Sarah Chen' }, { id: 'e2', name: 'Marcus Johnson' }, { id: 'e3', name: 'Angela Davis' }]
-  const shifts = generateShifts({ ...base, assignments: [assign('FT1', 'e1'), assign('PT5', 'e2'), assign('A1', 'e3')], from: '2026-11-09', to: '2026-11-09' })
+  const shifts = generateShifts({ ...base, assignments: [assign('FT1', 'e1'), assign('FT4', 'e2'), assign('A1', 'e3')], from: '2026-11-09', to: '2026-11-09' })
     .map(toShift).map(s => s.block_id === block('AM').id ? { ...s, start_time: '05:30' } : s)
   const groups = buildRoster({ date: '2026-11-09', shifts, blocks: SEED_BLOCKS, employees: emps, requirements: SEED_COVERAGE })
   it('groups by block and flags gaps', () => {
-    expect(groups.map(g => g.block.code)).toEqual(['AM', 'MID', 'PM', 'PMG'])
-    // Two High Noon lines, nobody on either.
-    expect(groups[1].rows).toEqual([{ role: 'driver', shift: null, name: null, uncovered: true }, { role: 'driver', shift: null, name: null, uncovered: true }])
-    expect(groups[3].rows.map(r => `${r.role}:${r.name}`)).toEqual(['driver:Marcus Johnson', 'attendant:Angela Davis'])
+    expect(groups.map(g => g.block.code)).toEqual(['AM', 'AM2', 'MID', 'PMG', 'GATT', 'PM'])
+    expect(groups[2].rows).toEqual([{ role: 'driver', shift: null, name: null, uncovered: true }])
+    expect(groups[3].rows.map(r => `${r.role}:${r.name}`)).toEqual(['driver:Marcus Johnson'])
+    expect(groups[4].rows.map(r => `${r.role}:${r.name}`)).toEqual(['attendant:Angela Davis'])
   })
   it('copyable text', () => {
     const text = rosterText('2026-11-09', groups)
     expect(text).toContain('Care-A-Van roster — Mon, Nov 9')
     expect(text).toContain('  Driver: Sarah Chen — 5:30 am – trips complete')
-    expect(text).toContain('MID · High Noon\n  Driver: ** UNCOVERED **')
-    expect(text).toContain('  Attendant: Angela Davis — 12:00 pm – last drop-off')
+    expect(text).toContain('MID · Midday 1\n  Driver: ** UNCOVERED **')
+    expect(text).toContain('  Attendant: Angela Davis — 1:00 pm – last drop-off')
   })
   it('time labels', () => {
     expect(shiftTimeLabel({ start_time: null, end_time: null }, block('AM'))).toBe('Start not posted yet – trips complete')

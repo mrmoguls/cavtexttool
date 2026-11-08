@@ -48,7 +48,7 @@ describe('overtime warnings', () => {
   // Sun Nov 8 – Sat Nov 14 payroll week; e1 works Mon–Fri 8 hrs = 40
   const week = ['2026-11-09', '2026-11-10', '2026-11-11', '2026-11-12', '2026-11-13'].map((d, i) => shift({ id: `w${i}`, date: d }))
   it('extra Saturday pushes the week over 40', () => {
-    const sat = shift({ id: 'sat', date: '2026-11-14', employee_id: null, block_id: block('SAT').id })
+    const sat = shift({ id: 'sat', date: '2026-11-14', employee_id: null, block_id: block('SATG').id })
     expect(overtimeWarnings({ employeeId: 'e1', add: [sat], shifts: week, limits, blocksById }))
       .toEqual(['Week of Sun, Nov 8: 48 hrs — over 40 (weekly overtime).'])
   })

@@ -13,7 +13,13 @@ import { pacificToInstant } from './scheduling/board'
 const today = todayISO()
 export const DEMO_GENERATED_THROUGH = addDays(today, 27)
 
-const AM_STARTS = ['05:15', '05:30', '05:45', '06:00', '05:30']
+// Posted start times by block (Sunrise 1 opens, Sunrise 2 is second call, Stars work back from the last drop-off).
+const POSTED_STARTS: Record<string, string[]> = {
+  'blk-AM': ['06:40', '07:10', '07:00', '06:45', '07:15'],
+  'blk-AM2': ['07:55', '08:00', '07:45', '08:10', '07:50'],
+  'blk-PMG': ['11:00', '11:00', '10:45', '11:15', '11:00'],
+  'blk-PM': ['11:45', '12:00', '11:30', '11:45', '12:15'],
+}
 
 let cache: Shift[] | null = null
 
@@ -28,7 +34,7 @@ export function demoShifts(): Shift[] {
     return {
       ...d,
       id: `sh-${i}`,
-      start_time: posted ? AM_STARTS[i % AM_STARTS.length] : d.start_time,
+      start_time: posted ? (POSTED_STARTS[d.block_id] ?? ['08:00'])[i % 5] : d.start_time,
       start_posted_at: posted ? `${addDays(d.date, -1)}T22:30:00Z` : null,
       start_posted_by: posted ? 'e-disp' : null,
       created_at: '2026-10-01T17:00:00Z',
@@ -93,11 +99,11 @@ export function demoBidding(): { periods: BidPeriod[]; links: BidPeriodLine[]; b
   const codes = SEED_LINES.map(l => l.code)
   const links = codes.map(c => ({ id: `bpl-${c}`, bid_period_id: 'bp-q1', line_id: `line-${c}` }))
   const ranked: [string, string[], boolean][] = [
-    ['d1', ['PT5', 'FT2'], false],      // Marcus
+    ['d1', ['FT4', 'FT3'], false],      // Marcus
     ['d2', ['FT1', 'FT2'], false],      // Sarah
     ['d8', ['A1'], false],              // Angela
-    ['d4', ['PT1', 'PT3', 'FT2'], true], // Rosa wants full-time if one is left
-    ['d5', ['PT4', 'PT2'], false],      // David
+    ['d4', ['FT2', 'FT3'], false], // Rosa (part-time) ranks full-time lines
+    ['d5', ['PT4', 'FT5'], false],      // David
   ]
   const bids: Bid[] = ranked.flatMap(([emp, list]) => list.map((c, i) => ({
     id: `bid-${emp}-${c}`, bid_period_id: 'bp-q1', employee_id: emp, line_id: `line-${c}`, rank: i + 1, created_at: `${addDays(today, -1)}T18:00:00Z`,

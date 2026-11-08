@@ -30,7 +30,7 @@ export const DEMO_CONTACTS: EmployeeContact[] = DEMO_EMPLOYEE_ROWS.map(e => ({ e
 
 // Some lines are held, some aren't — so the coverage view shows both green and red.
 const held: [string, string][] = [
-  ['FT1', 'd2'], ['PT5', 'd1'], ['PT1', 'd4'], ['PT2', 'd6'], ['PT4', 'd5'], ['A1', 'd8'], ['FLEX', 'd7'],
+  ['FT1', 'd2'], ['FT2', 'd4'], ['FT3', 'd6'], ['FT4', 'd1'], ['PT4', 'd5'], ['A1', 'd8'], ['FLEX', 'd7'],
 ]
 export const DEMO_ASSIGNMENTS: LineAssignment[] = held.map(([code, empId]) => ({
   id: `la-${code}`, line_id: `line-${code}`, employee_id: empId, bid_period_id: null, source: 'manual',

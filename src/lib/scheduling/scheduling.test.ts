@@ -35,27 +35,27 @@ describe('time', () => {
 describe('line summary + target hours', () => {
   it('matches the seed table', () => {
     expect(lineSummary(line('FT1'), daysOf('FT1'), blocksById)).toBe('Mon–Fri AM')
-    expect(lineSummary(line('PT1'), daysOf('PT1'), blocksById)).toBe('Mon–Wed PM')
-    expect(lineSummary(line('PT2'), daysOf('PT2'), blocksById)).toBe('Thu, Fri PM + Sat SAT')
-    expect(lineSummary(line('PT3'), daysOf('PT3'), blocksById)).toBe('Tue, Wed MID')
+    expect(lineSummary(line('FT5'), daysOf('FT5'), blocksById)).toBe('Mon–Thu PM')
+    expect(lineSummary(line('A1'), daysOf('A1'), blocksById)).toBe('Mon–Fri GATT')
     expect(lineSummary(line('PT4'), daysOf('PT4'), blocksById)).toBe('Sat SATG + Sun SUNG')
     expect(lineSummary(line('FLEX'), daysOf('FLEX'), blocksById)).toMatch(/on-call/)
   })
   it('sums block targets', () => {
     expect(lineTargetHours(daysOf('FT1'), blocksById)).toBe(40)
-    expect(lineTargetHours(daysOf('PT4'), blocksById)).toBe(12)
-    expect(lineTargetHours(daysOf('PT2'), blocksById)).toBe(16)
+    expect(lineTargetHours(daysOf('PT4'), blocksById)).toBe(10.5)
+    expect(lineTargetHours(daysOf('FT5'), blocksById)).toBe(32)
+    expect(lineTargetHours(daysOf('A1'), blocksById)).toBe(30)
     expect(lineTargetHours(daysOf('FLEX'), blocksById)).toBe(0)
   })
 })
 
 describe('line hours', () => {
-  it('High Noon lines are steady; Sunrise and Star lines vary', () => {
-    expect(lineHours(line('FT2'), daysOf('FT2'), blocksById)).toEqual({ label: '40 hrs/week', steady: true })
+  it('Midday 1 is steady; Sunrise and Star lines vary', () => {
+    expect(lineHours(line('FT3'), daysOf('FT3'), blocksById)).toEqual({ label: '40 hrs/week', steady: true })
     expect(lineHours(line('FT1'), daysOf('FT1'), blocksById).steady).toBe(false)
-    expect(lineHours(line('PT5'), daysOf('PT5'), blocksById)).toEqual({ label: 'About 25–40 hrs/week', steady: false })
-    expect(lineHours({ ...line('PT1'), hours_note: null }, daysOf('PT1'), blocksById).label).toBe('About 18 hrs/week')
-    expect(lineHours(line('FLEX'), daysOf('FLEX'), blocksById)).toEqual({ label: 'Hours vary', steady: false })
+    expect(lineHours(line('FT4'), daysOf('FT4'), blocksById)).toEqual({ label: 'About 30–40 hrs/week', steady: false })
+    expect(lineHours({ ...line('FT5'), hours_note: null }, daysOf('FT5'), blocksById).label).toBe('About 32 hrs/week')
+    expect(lineHours(line('FLEX'), daysOf('FLEX'), blocksById)).toEqual({ label: 'Sick calls, time off and busy days', steady: false })
   })
 })
 
@@ -70,26 +70,26 @@ describe('block language', () => {
       .toContain('Report at 5:30 am and work through your last scheduled drop-off.')
   })
   it('variable end', () => {
-    const lines = blockInstructions(block('PM'))
-    expect(lines).toEqual(['Report at 12:00 pm and work through your last scheduled drop-off.', TARGET_DISCLAIMER])
-    expect(blockTimeLabel(block('PM'))).toBe('12:00 pm – last drop-off')
+    const lines = blockInstructions(block('GATT'))
+    expect(lines).toEqual(['Report at 1:00 pm and work through your last scheduled drop-off.', TARGET_DISCLAIMER])
+    expect(blockTimeLabel(block('GATT'))).toBe('1:00 pm – last drop-off')
   })
   it('fixed block has no disclaimer', () => {
     const lines = blockInstructions(block('MID'))
-    expect(lines).toEqual(['Report at 8:00 am. Shift ends at 5:00 pm.'])
+    expect(lines).toEqual(['Report at 8:30 am. Shift ends at 5:00 pm.'])
   })
 })
 
 describe('eligibility', () => {
   it('anyone can bid on any line they are qualified for, full-time or part-time', () => {
     expect(lineIneligibility(emp(), line('FT1'))).toEqual([])
-    expect(lineIneligibility(emp(), line('PT1'))).toEqual([])
-    expect(lineIneligibility(emp({ employment_type: 'PT' }), line('PT1'))).toEqual([])
+    expect(lineIneligibility(emp(), line('FLEX'))).toEqual([])
+    expect(lineIneligibility(emp({ employment_type: 'PT' }), line('FLEX'))).toEqual([])
     expect(lineIneligibility(emp({ employment_type: 'PT' }), line('FT1'))).toEqual([])
   })
   it('gurney + role', () => {
-    expect(lineIneligibility(emp(), line('PT5'))).toEqual(['Requires gurney qualification.'])
-    expect(lineIneligibility(emp({ gurney_qualified: true }), line('PT5'))).toEqual([])
+    expect(lineIneligibility(emp(), line('FT4'))).toEqual(['Requires gurney qualification.'])
+    expect(lineIneligibility(emp({ gurney_qualified: true }), line('FT4'))).toEqual([])
     expect(lineIneligibility(emp(), line('A1'))).toEqual(['Attendant line — attendants only.'])
     expect(lineIneligibility(emp({ role: 'attendant' }), line('A1'))).toEqual([])
     expect(lineIneligibility(emp({ role: 'attendant' }), line('FT1'))).toEqual(['Driver line — drivers only.'])
@@ -131,9 +131,9 @@ describe('coverage', () => {
     const days = computeCoverage({ ...base, assignments: [] })
     const mon = days[0]
     expect(mon.dow).toBe(1)
-    // Mon: AM, MID, PM, PMG driver, PMG attendant
-    expect(mon.cells.map(c => `${c.block.code}/${c.role}`)).toEqual(['AM/driver', 'MID/driver', 'PM/driver', 'PMG/driver', 'PMG/attendant'])
-    expect(mon.shortCount).toBe(5)
+    // Mon: Sunrise 1 + 2, Midday 1, Star 1 (gurney driver), gurney attendant, Star 2
+    expect(mon.cells.map(c => `${c.block.code}/${c.role}`)).toEqual(['AM/driver', 'AM2/driver', 'MID/driver', 'PMG/driver', 'GATT/attendant', 'PM/driver'])
+    expect(mon.shortCount).toBe(6)
     expect(mon.cells.every(c => !c.noLine)).toBe(true)
     const sun = days[6]
     expect(sun.cells.map(c => `${c.block.code}/${c.role}`)).toEqual(['SUNG/driver', 'SUNG/attendant'])

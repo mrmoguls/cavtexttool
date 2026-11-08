@@ -65,7 +65,7 @@ export function AmStartBanner({ onOpen }: { onOpen: () => void }) {
     <button onClick={onOpen} className={`no-print w-full text-left px-4 py-2.5 text-sm font-medium flex items-center gap-2 ${status.phase === 'overdue' ? 'bg-[#CC2A2A] text-white' : 'bg-amber-100 text-amber-900'}`}>
       <Clock size={16} className="flex-shrink-0" />
       <span className="flex-1">
-        {n} AM start time{n === 1 ? '' : 's'} for tomorrow {n === 1 ? 'is' : 'are'} not posted
+        {n} start time{n === 1 ? '' : 's'} for tomorrow {n === 1 ? 'is' : 'are'} not posted
         {status.phase === 'overdue' ? ` — past the ${deadline} deadline` : ` — due by ${deadline}`}
       </span>
       <span className="underline underline-offset-2">Post now</span>
