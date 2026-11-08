@@ -24,6 +24,7 @@ Each one should finish with "Success". They're safe to run again if you're unsur
 2. `supabase/migrations/001_employees_and_auth.sql` — employees, logins, security rules
 3. `supabase/migrations/002_scheduling_setup.sql` — blocks, lines, coverage (with starter data)
 4. `supabase/migrations/003_shifts_and_notifications.sql` — dated shifts and in-app notifications
+5. `supabase/migrations/004_shift_board.sql` — shift board: give-ups, trades, sick calls, approvals
 
 > **Already running the app?** Do the same: run 001 then 002. Your existing drivers become
 > employees automatically, but **nobody can sign in until they have a phone number on file**
@@ -173,7 +174,23 @@ To remove someone, turn off **Active** (their history is kept).
   Assigning someone a line fills in their shifts automatically up to that date.
 - **Dispatch → AM starts** by 3:00 pm each day for the next day's early shifts (post Monday's on
   Friday if nobody works the weekend). A banner appears at 2:00 pm if any are missing.
-- **Dispatch → Roster → Copy** pastes the day's roster into Bambi or a text.
+- **Dispatch → Roster → Copy** pastes the day's roster into Bambi or a text. Tap any row to
+  reassign it, make it an open shift, fill an uncovered slot, or see its history.
+- **Dispatch → Requests** is the approval queue: give-ups, trades, open-shift requests and sick
+  calls. Overtime (over 8 hrs/day or 40 hrs/week, or a shift over 10 hrs) shows as a warning;
+  approving anyway needs a reason, which is saved.
+
+## Shift board rules
+
+- Drivers can give up or trade a shift only if it starts **more than 48 hours** from now. Inside
+  that, the app tells them to contact dispatch.
+- Trades need the coworker to accept first, then dispatch approves.
+- **Call out sick** skips the board: dispatch is notified, the shift becomes open, and eligible
+  coworkers are told. Nobody has to find their own replacement.
+- Open shifts (from sick calls, released give-ups, or dispatch) can be requested any time; dispatch
+  picks who gets it.
+- Optional: set `pt_first_open_shifts` to `true` in the `app_settings` table to give part-time
+  employees the first 24 hours on new open shifts (`pt_first_hours` changes the window).
 
 ---
 

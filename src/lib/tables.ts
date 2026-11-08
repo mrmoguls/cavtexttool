@@ -13,6 +13,7 @@ export type TableName =
   | 'audit_log'
   | 'shifts'
   | 'notifications'
+  | 'shift_requests'
 
 export const PRIMARY_KEYS: Record<TableName, string> = {
   employees: 'id',
@@ -29,11 +30,12 @@ export const PRIMARY_KEYS: Record<TableName, string> = {
   audit_log: 'id',
   shifts: 'id',
   notifications: 'id',
+  shift_requests: 'id',
 }
 
 /** Tables the database audit trigger records (mirrored by the demo store). */
 export const AUDITED_TABLES: TableName[] = [
-  'employees', 'blocks', 'lines', 'line_days', 'coverage_requirements', 'line_assignments', 'app_settings', 'shifts',
+  'employees', 'blocks', 'lines', 'line_days', 'coverage_requirements', 'line_assignments', 'app_settings', 'shifts', 'shift_requests',
 ]
 
 /** Simple row filters supported by both Supabase and the demo store. */

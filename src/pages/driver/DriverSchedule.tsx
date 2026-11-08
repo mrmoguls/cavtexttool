@@ -10,6 +10,9 @@ import { EmptyState } from '../../components/ui/EmptyState'
 import { ScrollBody, Segmented, SectionLabel, SubHeader } from '../../components/ui/Form'
 import type { Employee, Shift } from '../../types'
 import { CalendarDays, ChevronLeft, ChevronRight, Clock } from 'lucide-react'
+import { ShiftActions } from './ShiftActions'
+import { StatusPill } from '../../components/schedule/ShiftBits'
+import { isActive, REQUEST_STATUS_LABEL } from '../../lib/scheduling'
 
 const LOOKAHEAD_DAYS = 28
 
@@ -19,7 +22,7 @@ function dayLabel(date: string, today: string) {
   return formatDate(date)
 }
 
-export function DriverSchedule({ driver }: { driver: Employee }) {
+export function DriverSchedule({ driver, onMessageDispatch }: { driver: Employee; onMessageDispatch?: () => void }) {
   const data = useData()
   const today = todayISO()
   const [view, setView] = useState<'list' | 'week'>('list')
@@ -35,7 +38,7 @@ export function DriverSchedule({ driver }: { driver: Employee }) {
 
   if (open) {
     const fresh = data.shifts.find(s => s.id === open.id) ?? open
-    return <ShiftDetail shift={fresh} onBack={() => setOpen(null)} />
+    return <ShiftDetail shift={fresh} onBack={() => setOpen(null)} onMessageDispatch={onMessageDispatch} />
   }
 
   const assignment = data.assignments.find(a => a.employee_id === driver.id && isActiveOn(a.effective_from, a.effective_to, today))
@@ -93,6 +96,7 @@ function ShiftCard({ shift, today, onOpen }: { shift: Shift; today: string; onOp
   const block = data.blocksById.get(shift.block_id)
   if (!block) return null
   const unposted = needsPostedStart(shift, block)
+  const pending = data.requests.find(r => isActive(r) && (r.shift_id === shift.id || r.swap_shift_id === shift.id))
   // Only flag a missing start once it's due (the day before); further out it's normal.
   const waiting = unposted && shift.date <= addDays(today, 1)
   const deadline = typeof data.settings.am_start_deadline === 'string' ? data.settings.am_start_deadline : '15:00'
@@ -116,6 +120,7 @@ function ShiftCard({ shift, today, onOpen }: { shift: Shift; today: string; onOp
             <Badge variant="muted">{Number(shift.target_hours)} hrs target</Badge>
             {shift.role === 'attendant' && <Badge variant="muted">Attendant</Badge>}
             {block.start_type === 'variable' && !unposted && <Badge variant="sage">Start posted</Badge>}
+            {pending && <StatusPill tone="amber">{REQUEST_STATUS_LABEL[pending.status]}</StatusPill>}
           </div>
         </div>
       </div>
@@ -168,7 +173,7 @@ function WeekView({ shifts, weekStart, today, onWeek, onOpen }: {
   )
 }
 
-export function ShiftDetail({ shift, onBack }: { shift: Shift; onBack: () => void }) {
+export function ShiftDetail({ shift, onBack, onMessageDispatch }: { shift: Shift; onBack: () => void; onMessageDispatch?: () => void }) {
   const data = useData()
   const block = data.blocksById.get(shift.block_id)
   const line = shift.line_id ? data.lines.find(l => l.id === shift.line_id) : undefined
@@ -178,6 +183,9 @@ export function ShiftDetail({ shift, onBack }: { shift: Shift; onBack: () => voi
     <>
       <SubHeader title={`${formatDate(shift.date)} · ${block.name}`} onBack={onBack} />
       <ScrollBody>
+        {shift.status === 'open' && (
+          <div className="rounded-xl bg-[#FCE9E9] text-[#A82020] px-3 py-2 text-sm font-medium">You're no longer on this shift. It's an open shift now.</div>
+        )}
         <Card className="space-y-3">
           <div className="flex items-center gap-2">
             <span className="px-2 py-1 rounded-lg bg-[#0B1A5C] text-white text-xs font-bold">{block.code}</span>
@@ -198,7 +206,7 @@ export function ShiftDetail({ shift, onBack }: { shift: Shift; onBack: () => voi
             <p className="text-xs text-[#6B7A99]">Start time posted {new Date(shift.start_posted_at).toLocaleString('en-US', { timeZone: 'America/Los_Angeles', weekday: 'short', hour: 'numeric', minute: '2-digit' })}.</p>
           )}
         </Card>
-        <p className="text-xs text-[#6B7A99] px-1">Can't make it? Message dispatch. Trading and giving up shifts are coming soon.</p>
+        <ShiftActions shift={shift} onMessageDispatch={onMessageDispatch} />
       </ScrollBody>
     </>
   )

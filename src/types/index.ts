@@ -164,6 +164,7 @@ export interface Shift {
   start_posted_by: string | null
   target_hours: number
   notes: string | null
+  opened_at?: string | null
   created_by?: string | null
   created_at?: string
 }
@@ -177,4 +178,27 @@ export interface AppNotification {
   shift_id: string | null
   read_at: string | null
   created_at: string
+}
+
+export type RequestType = 'giveup' | 'swap' | 'pickup' | 'callout' | 'assign'
+export type RequestStatus = 'posted' | 'pending_partner' | 'pending' | 'approved' | 'denied' | 'declined' | 'cancelled'
+
+export interface ShiftRequest {
+  id: string
+  type: RequestType
+  status: RequestStatus
+  shift_id: string
+  swap_shift_id: string | null
+  requester_id: string
+  target_id: string | null
+  claimant_id: string | null
+  previous_employee_id: string | null
+  note: string | null
+  decision_note: string | null
+  override_reason: string | null
+  ot_warnings: string[] | null
+  decided_by: string | null
+  decided_at: string | null
+  created_at: string
+  updated_at: string
 }

@@ -1,19 +1,22 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { db, type TableName } from './db'
+import { useAuth } from './auth'
 import { addDays, assignmentConflicts, formatDate, formatTime, generateShifts, todayISO } from './scheduling'
+import { assignShift, createShift, decideRequest, driverActions, loadShiftHistory, type DecisionOptions, type SwapCandidate } from './board-actions'
 import type {
   Announcement, AnnouncementView, AppSetting, Block, CoverageRequirement, CrewRole, Dow, Employee,
-  EmployeeContact, Line, LineAssignment, LineDay, Message, Shift, AppNotification,
+  EmployeeContact, Line, LineAssignment, LineDay, Message, Shift, AppNotification, ShiftRequest,
 } from '../types'
 
 const TABLES: TableName[] = [
   'employees', 'employee_contacts', 'announcements', 'announcement_views', 'messages',
   'blocks', 'lines', 'line_days', 'coverage_requirements', 'line_assignments', 'app_settings',
-  'shifts', 'notifications',
+  'shifts', 'notifications', 'shift_requests',
 ]
 
 /** How far back shifts are loaded (the roster/schedule look ahead from today). */
 const SHIFT_HISTORY_DAYS = 14
+const REQUEST_HISTORY_DAYS = 60
 
 type Tables = {
   employees: Employee[]
@@ -29,12 +32,13 @@ type Tables = {
   app_settings: AppSetting[]
   shifts: Shift[]
   notifications: AppNotification[]
+  shift_requests: ShiftRequest[]
 }
 
 const EMPTY: Tables = {
   employees: [], employee_contacts: [], announcements: [], announcement_views: [], messages: [],
   blocks: [], lines: [], line_days: [], coverage_requirements: [], line_assignments: [], app_settings: [],
-  shifts: [], notifications: [],
+  shifts: [], notifications: [], shift_requests: [],
 }
 
 export type EmployeeDraft = Omit<Employee, 'id' | 'created_at' | 'auth_user_id' | 'push_subscription'> & { id?: string }
@@ -96,6 +100,21 @@ interface DataAPI {
   notifications: AppNotification[]
   unreadNotifications: number
   markNotificationsRead: (ids: string[]) => Promise<void>
+
+  // Shift board
+  requests: ShiftRequest[]
+  callOutSick: (shiftId: string, note: string | null) => Promise<void>
+  postGiveup: (shiftId: string, note: string | null) => Promise<void>
+  swapCandidates: (shiftId: string) => Promise<SwapCandidate[]>
+  proposeSwap: (shiftId: string, swapShiftId: string, note: string | null) => Promise<void>
+  respondSwap: (requestId: string, accept: boolean) => Promise<void>
+  claimGiveup: (requestId: string) => Promise<void>
+  requestOpenShift: (shiftId: string, note: string | null) => Promise<void>
+  cancelRequest: (requestId: string) => Promise<void>
+  decideRequest: (requestId: string, approve: boolean, opts: DecisionOptions) => Promise<void>
+  assignShift: (shiftId: string, employeeId: string | null, opts: DecisionOptions) => Promise<void>
+  createShift: (draft: { date: string; block_id: string; role: CrewRole; employee_id: string | null }, opts: DecisionOptions) => Promise<void>
+  loadShiftHistory: typeof loadShiftHistory
 }
 
 const DataContext = createContext<DataAPI>(null!)
@@ -104,18 +123,24 @@ export function useData() { return useContext(DataContext) }
 
 export function DataProvider({ children }: { children: ReactNode }) {
   const [tables, setTables] = useState<Tables>(EMPTY)
+  const meId = useAuth().me?.id ?? null
   const [loaded, setLoaded] = useState(false)
 
   const loadTable = useCallback(async (t: TableName) => {
     try {
       const rows = t === 'shifts'
         ? await db.select(t, { gte: { date: addDays(todayISO(), -SHIFT_HISTORY_DAYS) } })
-        : await db.select(t)
+        : t === 'shift_requests'
+          ? await db.select(t, { gte: { created_at: addDays(todayISO(), -REQUEST_HISTORY_DAYS) } })
+          : t === 'notifications'
+            // Notifications are personal (the database enforces this too; demo mode relies on it).
+            ? await db.select(t, { eq: { employee_id: meId } })
+            : await db.select(t)
       setTables(prev => ({ ...prev, [t]: rows }))
     } catch (err) {
       console.error(`Failed to load ${t}:`, err)
     }
-  }, [])
+  }, [meId])
 
   const reload = useCallback(async () => {
     await Promise.all(TABLES.map(loadTable))
@@ -144,6 +169,13 @@ export function DataProvider({ children }: { children: ReactNode }) {
     () => Object.fromEntries(tables.app_settings.map(s => [s.key, s.value])),
     [tables.app_settings],
   )
+  /** Run a board action, then refresh what it touches (realtime also catches changes by others). */
+  const board = async (fn: () => Promise<unknown>) => {
+    try { await fn() } finally {
+      await Promise.all([loadTable('shifts'), loadTable('shift_requests'), loadTable('notifications')])
+    }
+  }
+
   const generatedThrough = typeof settings.shifts_generated_through === 'string' ? settings.shifts_generated_through : null
   const blocksById = useMemo(() => new Map(tables.blocks.map(b => [b.id, b])), [tables.blocks])
   const employeesById = useMemo(() => new Map(tables.employees.map(e => [e.id, e])), [tables.employees])
@@ -374,6 +406,20 @@ export function DataProvider({ children }: { children: ReactNode }) {
       [tables.notifications],
     ),
     unreadNotifications: tables.notifications.filter(n => !n.read_at).length,
+
+    requests: tables.shift_requests,
+    callOutSick: (id, note) => board(() => driverActions.callOutSick(id, note)),
+    postGiveup: (id, note) => board(() => driverActions.postGiveup(id, note)),
+    swapCandidates: (id) => driverActions.swapCandidates(id),
+    proposeSwap: (id, other, note) => board(() => driverActions.proposeSwap(id, other, note)),
+    respondSwap: (id, accept) => board(() => driverActions.respondSwap(id, accept)),
+    claimGiveup: (id) => board(() => driverActions.claimGiveup(id)),
+    requestOpenShift: (id, note) => board(() => driverActions.requestOpenShift(id, note)),
+    cancelRequest: (id) => board(() => driverActions.cancelRequest(id)),
+    decideRequest: (id, approve, opts) => board(() => decideRequest(id, approve, opts)),
+    assignShift: (id, emp, opts) => board(() => assignShift(id, emp, opts)),
+    createShift: (draft, opts) => board(() => createShift(draft, opts)),
+    loadShiftHistory,
 
     markNotificationsRead: async (ids) => {
       if (ids.length === 0) return

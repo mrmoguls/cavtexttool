@@ -9,9 +9,10 @@ import { TabBar } from '../components/ui/TabBar'
 import { EmptyState } from '../components/ui/EmptyState'
 import { DriverMessages } from './DriverMessages'
 import { DriverSchedule } from './driver/DriverSchedule'
+import { DriverBoard, useTradeOffers } from './driver/DriverBoard'
 import { Notifications, BellButton } from './Notifications'
 import type { Employee } from '../types'
-import { Bell, MessageSquare, Megaphone, CheckCircle, Play, CalendarDays } from 'lucide-react'
+import { Bell, MessageSquare, Megaphone, CheckCircle, Play, CalendarDays, Repeat } from 'lucide-react'
 
 interface DriverHomeProps {
   driver: Employee
@@ -19,7 +20,7 @@ interface DriverHomeProps {
 }
 
 export function DriverHome({ driver, onSignOut }: DriverHomeProps) {
-  const [tab, setTab] = useState<'schedule' | 'feed' | 'messages'>('schedule')
+  const [tab, setTab] = useState<'schedule' | 'board' | 'feed' | 'messages'>('schedule')
   const [showNotifications, setShowNotifications] = useState(false)
   const [pushEnabled, setPushEnabled] = useState(false)
   const [acknowledging, setAcknowledging] = useState<string | null>(null)
@@ -28,6 +29,7 @@ export function DriverHome({ driver, onSignOut }: DriverHomeProps) {
   const { announcements, views } = data
   const driverViews = views.filter(v => v.driver_id === driver.id)
   const unreadMessages = data.getUnreadForDriver(driver.id)
+  const tradeOffers = useTradeOffers(driver.id)
 
   const getView = (id: string) => driverViews.find(v => v.announcement_id === id)
 
@@ -50,7 +52,8 @@ export function DriverHome({ driver, onSignOut }: DriverHomeProps) {
 
   const tabs = [
     { key: 'schedule', label: 'Schedule', icon: <CalendarDays size={20} /> },
-    { key: 'feed', label: 'Announcements', icon: <Megaphone size={20} />, badge: pendingAcks.length },
+    { key: 'board', label: 'Board', icon: <Repeat size={20} />, badge: tradeOffers.length },
+    { key: 'feed', label: 'News', icon: <Megaphone size={20} />, badge: pendingAcks.length },
     { key: 'messages', label: 'Messages', icon: <MessageSquare size={20} />, badge: unreadMessages },
   ]
 
@@ -72,7 +75,9 @@ export function DriverHome({ driver, onSignOut }: DriverHomeProps) {
         {showNotifications ? (
           <Notifications onBack={() => setShowNotifications(false)} />
         ) : tab === 'schedule' ? (
-          <DriverSchedule driver={driver} />
+          <DriverSchedule driver={driver} onMessageDispatch={() => setTab('messages')} />
+        ) : tab === 'board' ? (
+          <DriverBoard driver={driver} />
         ) : tab === 'feed' ? (
           <div className="flex-1 overflow-y-auto scroll-area scrollbar-hide px-4 py-4 space-y-3">
             {!pushEnabled && isPushSupported() && isStandaloneMode() && (

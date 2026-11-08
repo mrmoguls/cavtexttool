@@ -5,7 +5,9 @@ import { Card } from '../../components/ui/Card'
 import { Button } from '../../components/ui/Button'
 import { EmptyState } from '../../components/ui/EmptyState'
 import { ScrollBody, Segmented, TextInput, Warning } from '../../components/ui/Form'
-import { CalendarDays, Copy, Printer, Check } from 'lucide-react'
+import { CalendarDays, Copy, Printer, Check, ChevronRight } from 'lucide-react'
+import { ShiftSheet, FillSlot } from './ShiftSheet'
+import type { Block, CrewRole } from '../../types'
 
 type Day = 'today' | 'tomorrow' | 'pick'
 
@@ -17,6 +19,8 @@ export function DispatchRoster() {
   const [copied, setCopied] = useState(false)
   const [showText, setShowText] = useState(false)
   const textRef = useRef<HTMLTextAreaElement>(null)
+  const [openShift, setOpenShift] = useState<string | null>(null)
+  const [fill, setFill] = useState<{ block: Block; role: CrewRole } | null>(null)
 
   const date = day === 'today' ? today : day === 'tomorrow' ? addDays(today, 1) : picked
   const groups = useMemo(() => buildRoster({
@@ -27,6 +31,9 @@ export function DispatchRoster() {
   const uncovered = groups.reduce((n, g) => n + g.rows.filter(r => r.uncovered).length, 0)
   const text = rosterText(date, groups)
   const notGenerated = !data.generatedThrough || date > data.generatedThrough
+
+  if (openShift) return <ShiftSheet shiftId={openShift} onBack={() => setOpenShift(null)} />
+  if (fill) return <FillSlot date={date} block={fill.block} role={fill.role} onBack={() => setFill(null)} />
 
   async function copy() {
     try {
@@ -88,15 +95,21 @@ export function DispatchRoster() {
             {g.rows.map((r, i) => {
               const waiting = r.shift && !r.uncovered && needsPostedStart(r.shift, g.block)
               return (
-                <div key={r.shift?.id ?? `gap-${r.role}-${i}`} className={`flex items-center gap-3 rounded-xl px-3 py-2 ${r.uncovered ? 'bg-[#FCE9E9] border border-[#E03A3A]/40' : 'bg-[#EEF1F8]'}`}>
+                <button
+                  key={r.shift?.id ?? `gap-${r.role}-${i}`}
+                  onClick={() => r.shift ? setOpenShift(r.shift.id) : setFill({ block: g.block, role: r.role })}
+                  className={`w-full text-left flex items-center gap-3 rounded-xl px-3 py-2 ${r.uncovered ? 'bg-[#FCE9E9] border border-[#E03A3A]/40' : 'bg-[#EEF1F8]'}`}
+                >
                   <span className="w-20 text-xs font-semibold uppercase tracking-wide text-[#6B7A99]">{r.role === 'attendant' ? 'Attendant' : 'Driver'}</span>
                   <div className="flex-1 min-w-0">
                     <p className={`text-sm font-medium ${r.uncovered ? 'text-[#CC2A2A]' : 'text-[#0B1A5C]'}`}>{r.uncovered ? 'Uncovered' : r.name}</p>
                     {r.shift && !r.uncovered && (
                       <p className={`text-xs ${waiting ? 'text-[#CC2A2A] font-semibold' : 'text-[#6B7A99]'}`}>{shiftTimeLabel(r.shift, g.block)}</p>
                     )}
+                    {r.uncovered && <p className="text-xs text-[#A82020]">{r.shift ? 'Open shift — tap to assign' : 'Tap to fill'}</p>}
                   </div>
-                </div>
+                  <ChevronRight size={16} className="text-[#6B7A99] no-print" />
+                </button>
               )
             })}
           </Card>

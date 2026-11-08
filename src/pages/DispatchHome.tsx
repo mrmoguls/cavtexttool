@@ -11,16 +11,19 @@ import { DispatchCompose } from './DispatchCompose'
 import { DispatchThread } from './DispatchThread'
 import { AdminHome } from './admin/AdminHome'
 import { DispatchRoster } from './dispatch/DispatchRoster'
+import { DispatchRequests, usePendingCount } from './dispatch/DispatchRequests'
+import { Notifications, BellButton } from './Notifications'
 import { DispatchStarts, AmStartBanner, useTomorrowStarts } from './dispatch/DispatchStarts'
 import type { Announcement, Employee } from '../types'
-import { Megaphone, MessageSquare, Settings, ClipboardList, Plus, ChevronRight, CheckCircle, Clock } from 'lucide-react'
+import { Megaphone, MessageSquare, Settings, ClipboardList, Repeat, Plus, ChevronRight, CheckCircle, Clock } from 'lucide-react'
 
 interface DispatchHomeProps {
   onSignOut: () => void
 }
 
 export function DispatchHome({ onSignOut }: DispatchHomeProps) {
-  const [tab, setTab] = useState<'roster' | 'starts' | 'announcements' | 'inbox' | 'admin'>('roster')
+  const [tab, setTab] = useState<'roster' | 'requests' | 'starts' | 'announcements' | 'inbox' | 'admin'>('roster')
+  const [showNotifications, setShowNotifications] = useState(false)
   const [composing, setComposing] = useState(false)
   const [selectedAnnouncement, setSelectedAnnouncement] = useState<Announcement | null>(null)
   const [selectedDriver, setSelectedDriver] = useState<Employee | null>(null)
@@ -29,6 +32,7 @@ export function DispatchHome({ onSignOut }: DispatchHomeProps) {
   const { announcements, views, latestMessages, unreadDispatch } = data
   const { isAdmin } = useAuth()
   const starts = useTomorrowStarts()
+  const pendingRequests = usePendingCount()
   // Announcements and messages go to the crew (drivers + attendants).
   const drivers = data.employees.filter(e => e.active && (e.role === 'driver' || e.role === 'attendant'))
 
@@ -57,6 +61,7 @@ export function DispatchHome({ onSignOut }: DispatchHomeProps) {
 
   const tabs = [
     { key: 'roster', label: 'Roster', icon: <ClipboardList size={20} /> },
+    { key: 'requests', label: 'Requests', icon: <Repeat size={20} />, badge: pendingRequests },
     { key: 'starts', label: 'AM starts', icon: <Clock size={20} />, badge: starts.phase === 'warning' || starts.phase === 'overdue' ? starts.unset.length : 0 },
     { key: 'announcements', label: 'Posts', icon: <Megaphone size={20} /> },
     { key: 'inbox', label: 'Inbox', icon: <MessageSquare size={20} />, badge: unreadDispatch },
@@ -68,18 +73,23 @@ export function DispatchHome({ onSignOut }: DispatchHomeProps) {
       <TopBar
         title="Dispatch"
         right={
-          <button onClick={handleSignOut} className="text-xs text-white/60 underline underline-offset-2">
-            Sign out
-          </button>
+          <div className="flex items-center gap-3">
+            <BellButton count={data.unreadNotifications} onClick={() => setShowNotifications(true)} />
+            <button onClick={handleSignOut} className="text-xs text-white/60 underline underline-offset-2">
+              Sign out
+            </button>
+          </div>
         }
       />
 
       {tab !== 'starts' && <AmStartBanner onOpen={() => setTab('starts')} />}
 
       <div className="flex-1 overflow-hidden flex flex-col">
-        {tab === 'roster' && <DispatchRoster />}
-        {tab === 'starts' && <DispatchStarts />}
-        {tab === 'announcements' && (
+        {showNotifications && <Notifications onBack={() => setShowNotifications(false)} />}
+        {!showNotifications && tab === 'roster' && <DispatchRoster />}
+        {!showNotifications && tab === 'requests' && <DispatchRequests />}
+        {!showNotifications && tab === 'starts' && <DispatchStarts />}
+        {!showNotifications && tab === 'announcements' && (
           <div className="flex-1 overflow-y-auto scroll-area scrollbar-hide px-4 py-4 space-y-3">
             <Button fullWidth size="lg" onClick={() => setComposing(true)}>
               <Plus size={18} /> New Announcement
@@ -141,7 +151,7 @@ export function DispatchHome({ onSignOut }: DispatchHomeProps) {
           </div>
         )}
 
-        {tab === 'inbox' && (
+        {!showNotifications && tab === 'inbox' && (
           <div className="flex-1 overflow-y-auto scroll-area scrollbar-hide px-4 py-4 space-y-2">
             {drivers.length === 0 ? (
               <EmptyState icon={<MessageSquare />} title="No drivers yet" body="Add drivers in Admin → Employees." />
@@ -184,10 +194,10 @@ export function DispatchHome({ onSignOut }: DispatchHomeProps) {
           </div>
         )}
 
-        {tab === 'admin' && isAdmin && <AdminHome />}
+        {!showNotifications && tab === 'admin' && isAdmin && <AdminHome />}
       </div>
 
-      <TabBar tabs={tabs} active={tab} onChange={k => setTab(k as typeof tab)} />
+      <TabBar tabs={tabs} active={tab} onChange={k => { setShowNotifications(false); setTab(k as typeof tab) }} />
     </div>
   )
 }
