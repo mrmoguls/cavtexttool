@@ -143,3 +143,38 @@ export interface AuditEntry {
   after: Record<string, unknown> | null
   at: string
 }
+
+export type ShiftSource = 'line' | 'manual' | 'growth' | 'board'
+export type ShiftStatus = 'scheduled' | 'open' | 'cancelled'
+
+export interface Shift {
+  id: string
+  date: string // YYYY-MM-DD (Pacific)
+  block_id: string
+  role: CrewRole
+  /** null = open shift */
+  employee_id: string | null
+  line_id: string | null
+  assignment_id: string | null
+  source: ShiftSource
+  status: ShiftStatus
+  start_time: string | null
+  end_time: string | null
+  start_posted_at: string | null
+  start_posted_by: string | null
+  target_hours: number
+  notes: string | null
+  created_by?: string | null
+  created_at?: string
+}
+
+export interface AppNotification {
+  id: string
+  employee_id: string
+  kind: string
+  title: string
+  body: string | null
+  shift_id: string | null
+  read_at: string | null
+  created_at: string
+}

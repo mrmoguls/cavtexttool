@@ -1,9 +1,10 @@
 // In-memory stand-in for Supabase when no keys are configured (demo mode).
 // Holds every table as a plain array and mimics insert/update/delete + realtime + the audit trigger.
+import { demoShifts, demoNotifications, DEMO_GENERATED_THROUGH } from './demo-schedule'
 import { DEMO_ANNOUNCEMENTS, DEMO_ASSIGNMENTS, DEMO_CONTACTS, DEMO_EMPLOYEES, DEMO_MESSAGES, DEMO_VIEWS } from './demo-data'
 import { SEED_BLOCKS, SEED_COVERAGE, SEED_LINE_DAYS, SEED_LINES, SEED_SETTINGS } from './scheduling/seed'
 import type { AuditEntry } from '../types'
-import { PRIMARY_KEYS, AUDITED_TABLES, type TableName } from './tables'
+import { PRIMARY_KEYS, AUDITED_TABLES, rowMatches, type RowFilter, type TableName } from './tables'
 
 type Row = Record<string, unknown>
 type Listener = () => void
@@ -24,8 +25,10 @@ function initialTables(): Record<TableName, Row[]> {
     line_days: clone(SEED_LINE_DAYS) as unknown as Row[],
     coverage_requirements: clone(SEED_COVERAGE) as unknown as Row[],
     line_assignments: clone(DEMO_ASSIGNMENTS) as unknown as Row[],
-    app_settings: Object.entries(SEED_SETTINGS).map(([key, value]) => ({ key, value })),
+    app_settings: Object.entries({ ...SEED_SETTINGS, shifts_generated_through: DEMO_GENERATED_THROUGH }).map(([key, value]) => ({ key, value })),
     audit_log: [],
+    shifts: demoShifts() as unknown as Row[],
+    notifications: demoNotifications() as unknown as Row[],
   }
 }
 
@@ -70,8 +73,20 @@ class DemoStore {
     this.notify('audit_log')
   }
 
-  select(table: TableName): Row[] {
-    return clone(this.tables[table])
+  select(table: TableName, filter?: RowFilter): Row[] {
+    return clone(this.tables[table].filter(r => rowMatches(r, filter)))
+  }
+
+  removeIds(table: TableName, ids: string[]) {
+    const pk = PRIMARY_KEYS[table]
+    const set = new Set(ids)
+    const keep: Row[] = []
+    for (const row of this.tables[table]) {
+      if (set.has(row[pk] as string)) this.audit(table, 'delete', row, null)
+      else keep.push(row)
+    }
+    this.tables[table] = keep
+    this.notify(table)
   }
 
   insert(table: TableName, rows: Row[]): Row[] {

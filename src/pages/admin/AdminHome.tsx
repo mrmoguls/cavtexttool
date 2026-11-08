@@ -1,15 +1,16 @@
 import { useMemo, useState, type ReactNode } from 'react'
 import { useData } from '../../lib/data-context'
-import { computeCoverage, todayISO } from '../../lib/scheduling'
+import { computeCoverage, formatDate, todayISO } from '../../lib/scheduling'
 import { Card } from '../../components/ui/Card'
 import { ScrollBody } from '../../components/ui/Form'
 import { AdminEmployees } from './AdminEmployees'
 import { AdminBlocks } from './AdminBlocks'
 import { AdminLines } from './AdminLines'
 import { AdminCoverage } from './AdminCoverage'
-import { Users, Clock, Rows3, CalendarCheck, ChevronRight } from 'lucide-react'
+import { AdminSchedule } from './AdminSchedule'
+import { Users, Clock, Rows3, CalendarCheck, ChevronRight, CalendarRange } from 'lucide-react'
 
-type Section = 'menu' | 'employees' | 'blocks' | 'lines' | 'coverage'
+type Section = 'menu' | 'employees' | 'blocks' | 'lines' | 'coverage' | 'schedule'
 
 export function AdminHome() {
   const [section, setSection] = useState<Section>('menu')
@@ -26,6 +27,7 @@ export function AdminHome() {
   if (section === 'blocks') return <AdminBlocks onBack={back} />
   if (section === 'lines') return <AdminLines onBack={back} />
   if (section === 'coverage') return <AdminCoverage onBack={back} />
+  if (section === 'schedule') return <AdminSchedule onBack={back} />
 
   const activeEmployees = data.employees.filter(e => e.active)
   const missingPhone = activeEmployees.filter(e => !data.contacts.find(c => c.employee_id === e.id)?.phone.replace(/\D/g, '').slice(-4).match(/^\d{4}$/)).length
@@ -39,6 +41,15 @@ export function AdminHome() {
         subtitle={shortSlots === 0 ? 'Every required block is covered' : `${shortSlots} uncovered block${shortSlots === 1 ? '' : 's'} in a typical week`}
         alert={shortSlots > 0}
         onClick={() => setSection('coverage')}
+      />
+      <MenuCard
+        icon={<CalendarRange size={20} />}
+        title="Schedule"
+        subtitle={data.generatedThrough
+          ? `Shifts generated through ${formatDate(data.generatedThrough)}`
+          : 'No shifts generated yet'}
+        alert={!data.generatedThrough || data.generatedThrough < todayISO()}
+        onClick={() => setSection('schedule')}
       />
       <MenuCard
         icon={<Users size={20} />}

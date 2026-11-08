@@ -8,8 +8,10 @@ import { TopBar } from '../components/ui/TopBar'
 import { TabBar } from '../components/ui/TabBar'
 import { EmptyState } from '../components/ui/EmptyState'
 import { DriverMessages } from './DriverMessages'
+import { DriverSchedule } from './driver/DriverSchedule'
+import { Notifications, BellButton } from './Notifications'
 import type { Employee } from '../types'
-import { Bell, MessageSquare, Megaphone, CheckCircle, Play } from 'lucide-react'
+import { Bell, MessageSquare, Megaphone, CheckCircle, Play, CalendarDays } from 'lucide-react'
 
 interface DriverHomeProps {
   driver: Employee
@@ -17,7 +19,8 @@ interface DriverHomeProps {
 }
 
 export function DriverHome({ driver, onSignOut }: DriverHomeProps) {
-  const [tab, setTab] = useState<'feed' | 'messages'>('feed')
+  const [tab, setTab] = useState<'schedule' | 'feed' | 'messages'>('schedule')
+  const [showNotifications, setShowNotifications] = useState(false)
   const [pushEnabled, setPushEnabled] = useState(false)
   const [acknowledging, setAcknowledging] = useState<string | null>(null)
 
@@ -46,7 +49,8 @@ export function DriverHome({ driver, onSignOut }: DriverHomeProps) {
   })
 
   const tabs = [
-    { key: 'feed', label: 'Announcements', icon: <Megaphone size={20} /> },
+    { key: 'schedule', label: 'Schedule', icon: <CalendarDays size={20} /> },
+    { key: 'feed', label: 'Announcements', icon: <Megaphone size={20} />, badge: pendingAcks.length },
     { key: 'messages', label: 'Messages', icon: <MessageSquare size={20} />, badge: unreadMessages },
   ]
 
@@ -55,21 +59,28 @@ export function DriverHome({ driver, onSignOut }: DriverHomeProps) {
       <TopBar
         greeting={`Good to see you, ${driver.name.split(' ')[0]}`}
         right={
-          <button onClick={onSignOut} className="text-xs text-white/60 underline underline-offset-2">
-            Not you?
-          </button>
+          <div className="flex items-center gap-3">
+            <BellButton count={data.unreadNotifications} onClick={() => setShowNotifications(true)} />
+            <button onClick={onSignOut} className="text-xs text-white/60 underline underline-offset-2">
+              Not you?
+            </button>
+          </div>
         }
       />
 
       <div className="flex-1 overflow-hidden flex flex-col">
-        {tab === 'feed' ? (
+        {showNotifications ? (
+          <Notifications onBack={() => setShowNotifications(false)} />
+        ) : tab === 'schedule' ? (
+          <DriverSchedule driver={driver} />
+        ) : tab === 'feed' ? (
           <div className="flex-1 overflow-y-auto scroll-area scrollbar-hide px-4 py-4 space-y-3">
             {!pushEnabled && isPushSupported() && isStandaloneMode() && (
               <div className="bg-[#FCE9E9] border border-[#E03A3A]/30 rounded-2xl p-4 flex items-start gap-3">
                 <Bell size={18} className="text-[#CC2A2A] flex-shrink-0 mt-0.5" />
                 <div className="flex-1">
                   <p className="text-sm font-semibold text-[#0B1A5C]">Enable notifications</p>
-                  <p className="text-xs text-[#6B7A99] mt-0.5">Get alerted for new messages even when the app is closed.</p>
+                  <p className="text-xs text-[#6B7A99] mt-0.5">Get alerted for start times and messages even when the app is closed.</p>
                   <Button size="sm" className="mt-2" onClick={enablePush}>Enable</Button>
                 </div>
               </div>
@@ -153,7 +164,7 @@ export function DriverHome({ driver, onSignOut }: DriverHomeProps) {
         )}
       </div>
 
-      <TabBar tabs={tabs} active={tab} onChange={k => setTab(k as typeof tab)} />
+      <TabBar tabs={tabs} active={tab} onChange={k => { setShowNotifications(false); setTab(k as typeof tab) }} />
     </div>
   )
 }

@@ -53,3 +53,11 @@ body {
 
 .safe-top { padding-top: env(safe-area-inset-top); }
 .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+
+/* Printing the dispatch roster: hide app chrome, keep the cards. */
+@media print {
+  .no-print { display: none !important; }
+  body, #root { background: #FFFFFF !important; }
+  .scroll-area { overflow: visible !important; }
+  .break-inside-avoid { break-inside: avoid; }
+}

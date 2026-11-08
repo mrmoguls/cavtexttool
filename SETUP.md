@@ -23,6 +23,7 @@ Each one should finish with "Success". They're safe to run again if you're unsur
 1. `supabase/schema.sql` — messages and announcements
 2. `supabase/migrations/001_employees_and_auth.sql` — employees, logins, security rules
 3. `supabase/migrations/002_scheduling_setup.sql` — blocks, lines, coverage (with starter data)
+4. `supabase/migrations/003_shifts_and_notifications.sql` — dated shifts and in-app notifications
 
 > **Already running the app?** Do the same: run 001 then 002. Your existing drivers become
 > employees automatically, but **nobody can sign in until they have a phone number on file**
@@ -144,8 +145,8 @@ Push notifications let the app alert drivers even when it's closed — this is w
 | Role | Sees |
 |---|---|
 | Driver / Attendant | Announcements, their own messages, their own schedule |
-| Dispatcher | Everything above for everyone, plus Posts and Inbox |
-| Admin | Everything, plus the **Admin** tab: employees, blocks, lines, coverage |
+| Dispatcher | Everything above for everyone, plus the daily Roster, AM start times, Posts and Inbox |
+| Admin | Everything, plus the **Admin** tab: employees, blocks, lines, coverage, schedule |
 
 This is enforced by the database (Row Level Security), not just hidden in the app.
 
@@ -163,6 +164,16 @@ custom PINs.
 
 They open the app, tap their name, and enter the last 4 digits of their phone number.
 To remove someone, turn off **Active** (their history is kept).
+
+---
+
+## Weekly routine
+
+- **Admin → Schedule → Generate shifts** about once a month to keep four or more weeks scheduled.
+  Assigning someone a line fills in their shifts automatically up to that date.
+- **Dispatch → AM starts** by 3:00 pm each day for the next day's early shifts (post Monday's on
+  Friday if nobody works the weekend). A banner appears at 2:00 pm if any are missing.
+- **Dispatch → Roster → Copy** pastes the day's roster into Bambi or a text.
 
 ---
 

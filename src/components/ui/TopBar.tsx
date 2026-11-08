@@ -9,7 +9,7 @@ interface TopBarProps {
 
 export function TopBar({ greeting, right, title }: TopBarProps) {
   return (
-    <div className="bg-[#0B1A5C] safe-top">
+    <div className="bg-[#0B1A5C] safe-top no-print">
       <div className="px-4 py-3 flex items-center justify-between">
         <div className="flex flex-col gap-0.5">
           <Logo size="sm" onDark />

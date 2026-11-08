@@ -1,15 +1,19 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { db, type TableName } from './db'
-import { assignmentConflicts } from './scheduling'
+import { addDays, assignmentConflicts, formatDate, formatTime, generateShifts, todayISO } from './scheduling'
 import type {
   Announcement, AnnouncementView, AppSetting, Block, CoverageRequirement, CrewRole, Dow, Employee,
-  EmployeeContact, Line, LineAssignment, LineDay, Message,
+  EmployeeContact, Line, LineAssignment, LineDay, Message, Shift, AppNotification,
 } from '../types'
 
 const TABLES: TableName[] = [
   'employees', 'employee_contacts', 'announcements', 'announcement_views', 'messages',
   'blocks', 'lines', 'line_days', 'coverage_requirements', 'line_assignments', 'app_settings',
+  'shifts', 'notifications',
 ]
+
+/** How far back shifts are loaded (the roster/schedule look ahead from today). */
+const SHIFT_HISTORY_DAYS = 14
 
 type Tables = {
   employees: Employee[]
@@ -23,11 +27,14 @@ type Tables = {
   coverage_requirements: CoverageRequirement[]
   line_assignments: LineAssignment[]
   app_settings: AppSetting[]
+  shifts: Shift[]
+  notifications: AppNotification[]
 }
 
 const EMPTY: Tables = {
   employees: [], employee_contacts: [], announcements: [], announcement_views: [], messages: [],
   blocks: [], lines: [], line_days: [], coverage_requirements: [], line_assignments: [], app_settings: [],
+  shifts: [], notifications: [],
 }
 
 export type EmployeeDraft = Omit<Employee, 'id' | 'created_at' | 'auth_user_id' | 'push_subscription'> & { id?: string }
@@ -77,6 +84,18 @@ interface DataAPI {
   assignLine: (draft: AssignmentDraft, createdBy: string | null) => Promise<void>
   endAssignment: (id: string, endDate: string) => Promise<void>
   deleteAssignment: (id: string) => Promise<void>
+
+  // Schedule
+  shifts: Shift[]
+  /** Last date shifts have been generated through (null = never). */
+  generatedThrough: string | null
+  generateSchedule: (from: string, to: string, opts: { rebuild: boolean; createdBy: string | null }) => Promise<{ added: number; removed: number }>
+  setShiftStart: (shift: Shift, time: string | null, postedBy: string | null) => Promise<void>
+
+  // Notifications (always your own)
+  notifications: AppNotification[]
+  unreadNotifications: number
+  markNotificationsRead: (ids: string[]) => Promise<void>
 }
 
 const DataContext = createContext<DataAPI>(null!)
@@ -89,7 +108,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   const loadTable = useCallback(async (t: TableName) => {
     try {
-      const rows = await db.select(t)
+      const rows = t === 'shifts'
+        ? await db.select(t, { gte: { date: addDays(todayISO(), -SHIFT_HISTORY_DAYS) } })
+        : await db.select(t)
       setTables(prev => ({ ...prev, [t]: rows }))
     } catch (err) {
       console.error(`Failed to load ${t}:`, err)
@@ -123,6 +144,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     () => Object.fromEntries(tables.app_settings.map(s => [s.key, s.value])),
     [tables.app_settings],
   )
+  const generatedThrough = typeof settings.shifts_generated_through === 'string' ? settings.shifts_generated_through : null
   const blocksById = useMemo(() => new Map(tables.blocks.map(b => [b.id, b])), [tables.blocks])
   const employeesById = useMemo(() => new Map(tables.employees.map(e => [e.id, e])), [tables.employees])
 
@@ -268,18 +290,96 @@ export function DataProvider({ children }: { children: ReactNode }) {
       if (!line) throw new Error('Line not found.')
       const problems = assignmentConflicts(draft, line, tables.line_assignments)
       if (problems.length) throw new Error(problems.join(' '))
-      await db.insert('line_assignments', { ...draft, source: 'manual', bid_period_id: null, created_by: createdBy })
-      await loadTable('line_assignments')
+      const [created] = await db.insert<LineAssignment>('line_assignments', { ...draft, source: 'manual', bid_period_id: null, created_by: createdBy })
+      // Fill in their shifts up to the date the schedule has already been generated through.
+      const from = draft.effective_from > todayISO() ? draft.effective_from : todayISO()
+      if (created && generatedThrough && generatedThrough >= from) {
+        const existing = await db.select<Shift>('shifts', { eq: { assignment_id: created.id } })
+        const drafts = generateShifts({
+          assignments: [created], lines: tables.lines, lineDays: tables.line_days, blocks: tables.blocks,
+          existing, from, to: generatedThrough, createdBy,
+        })
+        await db.insert('shifts', drafts as unknown as Record<string, unknown>[])
+      }
+      await Promise.all([loadTable('line_assignments'), loadTable('shifts')])
     },
 
     endAssignment: async (id, endDate) => {
       await db.update('line_assignments', { id }, { effective_to: endDate })
-      await loadTable('line_assignments')
+      // Their shifts after the last day come off the schedule.
+      const after = await db.select<Shift>('shifts', { eq: { assignment_id: id }, gte: { date: addDays(endDate, 1) } })
+      await db.removeIds('shifts', after.map(s => s.id))
+      await Promise.all([loadTable('line_assignments'), loadTable('shifts')])
     },
 
     deleteAssignment: async (id) => {
+      // Upcoming shifts from a mistaken assignment go away; past ones stay (unlinked) for history.
+      const upcoming = await db.select<Shift>('shifts', { eq: { assignment_id: id }, gte: { date: todayISO() } })
+      await db.removeIds('shifts', upcoming.map(s => s.id))
       await db.remove('line_assignments', { id })
-      await loadTable('line_assignments')
+      await Promise.all([loadTable('line_assignments'), loadTable('shifts')])
+    },
+
+    // ── Schedule ─────────────────────────────────────────────────────────────
+
+    shifts: tables.shifts,
+    generatedThrough: generatedThrough,
+
+    generateSchedule: async (from, to, { rebuild, createdBy }) => {
+      if (to < from) throw new Error('The end date is before the start date.')
+      let removed = 0
+      let existing = await db.select<Shift>('shifts', { gte: { date: from }, lte: { date: to } })
+      if (rebuild) {
+        // Only untouched line shifts are rebuilt: posted start times and manual changes are kept.
+        const stale = existing.filter(s => s.source === 'line' && s.status === 'scheduled' && !s.start_posted_at)
+        await db.removeIds('shifts', stale.map(s => s.id))
+        removed = stale.length
+        const staleIds = new Set(stale.map(s => s.id))
+        existing = existing.filter(s => !staleIds.has(s.id))
+      }
+      const drafts = generateShifts({
+        assignments: tables.line_assignments, lines: tables.lines, lineDays: tables.line_days,
+        blocks: tables.blocks, existing, from, to, createdBy,
+      })
+      await db.insert('shifts', drafts as unknown as Record<string, unknown>[])
+      if (!generatedThrough || to > generatedThrough) {
+        await db.upsert('app_settings', { key: 'shifts_generated_through', value: to, updated_at: new Date().toISOString() })
+      }
+      await Promise.all([loadTable('shifts'), loadTable('app_settings')])
+      return { added: drafts.length, removed }
+    },
+
+    setShiftStart: async (shift, time, postedBy) => {
+      const wasPosted = !!shift.start_time
+      await db.update('shifts', { id: shift.id }, {
+        start_time: time,
+        start_posted_at: time ? new Date().toISOString() : null,
+        start_posted_by: time ? postedBy : null,
+      })
+      if (time && shift.employee_id) {
+        await db.insert('notifications', {
+          employee_id: shift.employee_id,
+          kind: wasPosted ? 'am_start_changed' : 'am_start_posted',
+          title: `${wasPosted ? 'Start time changed' : 'Start time'} for ${formatDate(shift.date)}: ${formatTime(time)}`,
+          body: `Report at ${formatTime(time)} and work until your assigned trips are complete.`,
+          shift_id: shift.id,
+          read_at: null,
+        })
+      }
+      await Promise.all([loadTable('shifts'), loadTable('notifications')])
+    },
+
+    notifications: useMemo(
+      () => [...tables.notifications].sort((a, b) => b.created_at.localeCompare(a.created_at)),
+      [tables.notifications],
+    ),
+    unreadNotifications: tables.notifications.filter(n => !n.read_at).length,
+
+    markNotificationsRead: async (ids) => {
+      if (ids.length === 0) return
+      const now = new Date().toISOString()
+      await Promise.all(ids.map(id => db.update('notifications', { id }, { read_at: now })))
+      await loadTable('notifications')
     },
   }
 
