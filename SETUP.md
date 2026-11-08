@@ -1,4 +1,4 @@
-# Care-A-Van Connect — Setup Guide
+# CAV Hub — Setup Guide
 
 This is a step-by-step guide to get the app running. You don't need to know how to code.
 
@@ -112,6 +112,13 @@ npm run dev
 Open `http://localhost:5173` — you should see the team list. Sign in as the admin you created in Step 2c.
 
 > **No Supabase keys yet?** The app runs in **demo mode** with sample people and data. Try Pat Morgan (admin, PIN 0100), Dana Reyes (dispatch, PIN 0101), or any driver — the PIN screen shows their demo PIN. Demo changes reset when you reload.
+
+---
+
+## Step 5b: Add the logo
+
+Put the Care-A-Van logo at `public/brand/logo.png`, then run `python3 scripts/make-icons.py` to
+make the home-screen and browser icons. See `public/brand/README.md`.
 
 ---
 

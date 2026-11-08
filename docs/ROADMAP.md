@@ -1,4 +1,4 @@
-# Care-A-Van Driver App — Roadmap
+# CAV Hub (Care-A-Van driver app) — Roadmap
 
 _Last updated: 2026-11-07_
 
@@ -25,6 +25,7 @@ One mobile-first app (PWA) that is the driver's **single starting point for work
 | Availability | 1 | ✅ Read from the Google Sheet (Schedule tab); drivers can't edit it in the app yet |
 | Line bidding by seniority; seniority from the Google Sheet (Roster tab) | 1 | ✅ Built |
 | Daily roster for Bambi, AM start-time posting | 1 | ✅ Built |
+| Schedule export for Bambi (Excel with 3 sheets + CSV: weekly availability, dated shifts, week at a glance) | 1 | ✅ Built — match Bambi's import template once we have it |
 | Open shifts to current staff wanting more hours **before new hires** | 1 | 🟡 Partly: a "part-time first" window exists; no "wants more hours" flag yet |
 | Dispatch alert when an open shift has no taker within 24 hours | 1 | ✅ Built (banner + daily notification) |
 | Assignment considers **hours available** | 1 | 🟡 Partly: availability days and seniority are used; weekly hour caps (e.g. "no more than 20 hrs") are only in free-text notes |
@@ -75,6 +76,8 @@ One mobile-first app (PWA) that is the driver's **single starting point for work
 _Note: the scheduling work (shift scheduling, shift board, line bidding) was built in its own four steps; together they cover the scheduling part of Phase 1._
 
 ## Open questions
+- **Bambi availability import:** Bambi's Partner API (v0.1) has trips, drivers and vehicles (read-only for drivers/vehicles) and webhooks, but **no availability or shift endpoints**. Availability has to go in through Bambi's own import screen or their support team. Get Bambi's import template so the export matches it exactly.
+- **Bambi API, later:** with partner credentials, the app could read each driver's trips server-side to (a) suggest tomorrow's AM start times (30 min before the first pickup) and (b) show today's ride count on the shift card. Trips contain patient details, so only times/counts would be kept (see HIPAA below).
 - **Does Bambi handle billing and trip logs, or only the driver view?** This decides whether replacing it is small or a major project (dispatch and billing would have to move too).
 - **HIPAA:** if ride/patient data ever enters this app, confirm a BAA with Supabase (check plan requirements) and HIPAA-level controls first.
   - The in-app **messages** and shift-board **notes** are free text. Drivers could type patient details there by habit. Consider a short "no patient names or details" reminder on those boxes.
@@ -88,6 +91,7 @@ _Note: the scheduling work (shift scheduling, shift board, line bidding) was bui
 
 ## Decision log
 - **2026-11-07:** Chose "one front door" hub model: native features for what we own, linked tiles for Bambi, payroll time clock, Pathway, and other tools. Decided not to rebuild ride management or payroll timekeeping for now.
+- **2026-11-07:** The app is named **CAV Hub**.
 - **2026-11-07:** Linked tiles built with empty placeholder links; admins add the real Bambi, BBSI, Pathway, handbook and dispatch links in the app.
 - **2026-11-07:** Pre-trip inspections stay in Bambi (already in use there); the app links to it instead of rebuilding.
 - **2026-11-07:** Expiration tracking uses the sheet's Due Dates tab as the source of truth (synced, read-only in the app). Reminders at 60 / 30 / 7 days and weekly once overdue; drivers report renewals in the app, admins update the sheet.

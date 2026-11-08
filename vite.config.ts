@@ -9,18 +9,19 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['favicon.ico', 'apple-touch-icon.png'],
+      includeAssets: ['favicon.svg', 'favicon.png', 'icons/apple-touch-icon.png', 'brand/*.png'],
       manifest: {
-        name: 'Care-A-Van Connect',
-        short_name: 'CAV Connect',
-        description: 'Internal communication for Care-A-Van drivers',
+        name: 'CAV Hub',
+        short_name: 'CAV Hub',
+        description: "Care-A-Van's app for drivers and dispatch: schedules, shift board, bidding and links",
         theme_color: '#0B1A5C',
         background_color: '#EEF1F8',
         display: 'standalone',
         orientation: 'portrait',
         icons: [
           { src: 'icons/icon-192.png', sizes: '192x192', type: 'image/png' },
-          { src: 'icons/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any maskable' },
+          { src: 'icons/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+          { src: 'icons/maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ],
       },
       workbox: {

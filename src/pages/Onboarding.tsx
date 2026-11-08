@@ -77,7 +77,7 @@ export function Onboarding() {
                 'Open this page in Safari (not Chrome)',
                 'Tap the Share button (box with arrow at bottom)',
                 '"Add to Home Screen" → Add',
-                'Open Care-A-Van Connect from your Home Screen',
+                'Open CAV Hub from your Home Screen',
               ].map((s, i) => (
                 <div key={i} className="flex items-start gap-2.5">
                   <span className="flex-shrink-0 w-5 h-5 rounded-full bg-[#CC2A2A] text-white text-xs flex items-center justify-center font-semibold">{i + 1}</span>

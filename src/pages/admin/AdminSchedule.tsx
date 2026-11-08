@@ -5,7 +5,8 @@ import { addDays, formatDate, todayISO } from '../../lib/scheduling'
 import { Card } from '../../components/ui/Card'
 import { Button } from '../../components/ui/Button'
 import { Field, ScrollBody, SubHeader, TextInput, Toggle, Warning } from '../../components/ui/Form'
-import { CheckCircle } from 'lucide-react'
+import { CheckCircle, FileSpreadsheet } from 'lucide-react'
+import { ScheduleExport } from './ScheduleExport'
 
 export function AdminSchedule({ onBack }: { onBack: () => void }) {
   const data = useData()
@@ -19,6 +20,9 @@ export function AdminSchedule({ onBack }: { onBack: () => void }) {
   const [busy, setBusy] = useState(false)
   const [result, setResult] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [exporting, setExporting] = useState(false)
+
+  if (exporting) return <ScheduleExport onBack={() => setExporting(false)} />
 
   async function run() {
     setBusy(true)
@@ -47,6 +51,8 @@ export function AdminSchedule({ onBack }: { onBack: () => void }) {
             Shifts come from who holds each line. When you assign someone a line, their shifts are added up to this date automatically.
           </p>
         </Card>
+
+        <Button fullWidth variant="secondary" onClick={() => setExporting(true)}><FileSpreadsheet size={16} /> Export for Bambi (Excel / CSV)</Button>
 
         <Card className="space-y-4">
           <p className="font-semibold text-[#0B1A5C]">Generate shifts</p>

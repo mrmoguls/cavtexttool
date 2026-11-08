@@ -5,8 +5,9 @@ import { Card } from '../../components/ui/Card'
 import { Button } from '../../components/ui/Button'
 import { EmptyState } from '../../components/ui/EmptyState'
 import { ScrollBody, Segmented, TextInput, Warning } from '../../components/ui/Form'
-import { CalendarDays, Copy, Printer, Check, ChevronRight } from 'lucide-react'
+import { CalendarDays, Copy, Printer, Check, ChevronRight, FileSpreadsheet } from 'lucide-react'
 import { ShiftSheet, FillSlot } from './ShiftSheet'
+import { ScheduleExport } from '../admin/ScheduleExport'
 import { TileIcon, isSetUp, useMyTiles } from '../../components/tiles/Tiles'
 import type { Block, CrewRole } from '../../types'
 
@@ -23,6 +24,7 @@ export function DispatchRoster() {
   const [openShift, setOpenShift] = useState<string | null>(null)
   const [fill, setFill] = useState<{ block: Block; role: CrewRole } | null>(null)
   const quickLinks = useMyTiles().filter(isSetUp)
+  const [exporting, setExporting] = useState(false)
 
   const date = day === 'today' ? today : day === 'tomorrow' ? addDays(today, 1) : picked
   const groups = useMemo(() => buildRoster({
@@ -35,6 +37,7 @@ export function DispatchRoster() {
   const notGenerated = !data.generatedThrough || date > data.generatedThrough
   const offToday = data.timeOff.filter(t => t.status === 'approved' && t.start_date <= date && t.end_date >= date)
 
+  if (exporting) return <ScheduleExport onBack={() => setExporting(false)} />
   if (openShift) return <ShiftSheet shiftId={openShift} onBack={() => setOpenShift(null)} />
   if (fill) return <FillSlot date={date} block={fill.block} role={fill.role} onBack={() => setFill(null)} />
 
@@ -84,6 +87,7 @@ export function DispatchRoster() {
             {copied ? <><Check size={14} /> Copied</> : <><Copy size={14} /> Copy</>}
           </Button>
           <Button size="sm" variant="secondary" onClick={() => window.print()} aria-label="Print roster"><Printer size={14} /></Button>
+          <Button size="sm" variant="secondary" onClick={() => setExporting(true)} aria-label="Export schedule"><FileSpreadsheet size={14} /></Button>
         </div>
       </div>
 
