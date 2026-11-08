@@ -30,6 +30,7 @@ Each one should finish with "Success". They're safe to run again if you're unsur
 8. `supabase/migrations/007_link_tiles.sql` — linked tiles on the Home screen (starts with empty links)
 9. `supabase/migrations/008_start_confirmations_and_bambi.sql` — start-time confirmations + weekly Bambi checklist
 10. `supabase/migrations/009_push_notifications.sql` — phone notifications (does nothing until Step 7 is done)
+11. `supabase/migrations/010_driver_faq_tile.sql` — Driver FAQ tile (links to the FAQ Google Doc)
 
 > **Already running the app?** Do the same: run 001 then 002. Your existing drivers become
 > employees automatically, but **nobody can sign in until they have a phone number on file**

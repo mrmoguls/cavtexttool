@@ -4,7 +4,7 @@ import { useAuth } from '../../lib/auth'
 import type { LinkTile } from '../../types'
 import {
   BookOpen, Car, ClipboardCheck, Clock, FileText, Fuel, Globe, GraduationCap, HeartPulse, Link as LinkIcon,
-  MessageSquare, Phone, ShieldCheck, TriangleAlert, Wrench, ExternalLink,
+  MessageSquare, Phone, ShieldCheck, TriangleAlert, Wrench, ExternalLink, CircleHelp,
 } from 'lucide-react'
 
 /** Built-in icons admins can pick from (or they can give a real app-icon image URL). */
@@ -14,6 +14,7 @@ export const TILE_ICONS: Record<string, { label: string; icon: (size: number) =>
   clock: { label: 'Clock', icon: s => <Clock size={s} /> },
   'graduation-cap': { label: 'Training', icon: s => <GraduationCap size={s} /> },
   'book-open': { label: 'Handbook', icon: s => <BookOpen size={s} /> },
+  'circle-help': { label: 'Questions / FAQ', icon: s => <CircleHelp size={s} /> },
   phone: { label: 'Phone', icon: s => <Phone size={s} /> },
   'triangle-alert': { label: 'Emergency', icon: s => <TriangleAlert size={s} /> },
   wrench: { label: 'Repairs', icon: s => <Wrench size={s} /> },

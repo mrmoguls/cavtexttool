@@ -39,6 +39,7 @@ One mobile-first app (PWA) that is the driver's **single starting point for work
 | Incident / accident reports with photos | 2 | ⬜ Not started |
 | Expiration tracking and alerts (synced from the sheet's Due Dates + Requirements tabs) | 2 | ✅ Built |
 | Coggno integration ("X trainings due") | 2 | ⬜ Not started |
+| "Ask a question" helper: AI answers from the Driver FAQ Google Doc; unanswered questions go to Ryan, his answer goes back to the driver and into the FAQ | 2 | ⬜ Not started — FAQ doc and tile are in place; doc being written from interviews |
 | Fuel receipt photos tagged to van | 2 | ⬜ Not started |
 | Tile tap tracking | 2 | ✅ Built (taps and people per tile, last 30 days) |
 | Native ride view | 3 | Parked |
@@ -49,7 +50,7 @@ One mobile-first app (PWA) that is the driver's **single starting point for work
 2. **Go live (setup, no new building):** Supabase project + migrations 001–009, PIN login and sheet sync functions, Google Sheet connection, scheduled alerts, hosting on Netlify, phone notification keys. Steps in SETUP.md.
 3. **Trial (1–2 weeks):** Amber + 3–4 drivers on the live app alongside today's texting and Bambi routine.
 4. **Roll out:** sign-up session so everyone installs the app, turns on notifications and stays signed in to Bambi, BBSI and Coggno on their phone. Then stop texting start times.
-5. **Then Phase 2:** incident/accident reports with photos, Coggno "trainings due", fuel receipts.
+5. **Then Phase 2:** incident/accident reports with photos, "Ask a question" helper, Coggno "trainings due", fuel receipts.
 
 ## Native features (built in the app)
 - **Scheduling:** view shifts, availability, time-off requests, shift swaps, open-shift pickup
@@ -58,6 +59,7 @@ One mobile-first app (PWA) that is the driver's **single starting point for work
 - **Announcements** with required **"I've read this"** acknowledgment (proof of receipt for policy changes and handbook sign-off)
 - ~~**Pre-trip vehicle inspection**~~ — done in Bambi; not part of CAV Hub
 - **Incident / accident reporting** from the phone, with photos
+- **"Ask a question" helper:** a driver types a question; AI answers only from the Driver FAQ doc and shows which section it used. If the doc doesn't cover it, the question goes to Ryan (phone notification); his answer goes back to the driver and he can add it to the FAQ with one tap. Includes a list of questions asked. Question box carries a "no patient names or details" reminder. Cost: pennies per question
 - **Expiration tracking & alerts:** driver's license, CPR/first aid, background check, required trainings. Notify the driver and admins before anything lapses
 - **Fuel receipt photo upload** tagged to van (supports cost-per-van tracking)
 
@@ -69,6 +71,7 @@ One mobile-first app (PWA) that is the driver's **single starting point for work
 | Coggno Training | Compliance training (login.coggno.com) | Ideally shares the Supabase login; show a "X trainings due" card on the home screen |
 | Repair Quote Review ("Ask Ryan") | Van repair decisions | For drivers/staff who handle shop quotes |
 | Employee Handbook (2027) | Reference | |
+| Driver FAQ | Common questions (Google Doc) | Becomes the source for the "Ask a question" helper |
 | Call Dispatch | Tap-to-call | 530-221-4826 |
 | Accident / Emergency Instructions | What to do at a scene | |
 
@@ -104,6 +107,7 @@ _Note: the scheduling work (shift scheduling, shift board, line bidding) was bui
 ## Decision log
 - **2026-11-07:** Chose "one front door" hub model: native features for what we own, linked tiles for Bambi, payroll time clock, training (Coggno), and other tools. Decided not to rebuild ride management or payroll timekeeping for now.
 - **2026-11-07:** Amber keeps entering teams in Bambi, weekly (clone a day). CAV Hub lists every change to an entered week as a Bambi update. Start times are posted the night before from the first pickup (−30 min) and drivers confirm in the app instead of by text.
+- **2026-11-08:** Knowledge base = one Google Doc (Driver FAQ), linked as a tile now. The AI "Ask a question" helper will be built into CAV Hub in Phase 2 (drivers are already signed in, so questions can be routed to Ryan and answers sent back) rather than as a separate public bot.
 - **2026-11-08:** Phone notifications use free web push (no texting service). Everything in the bell, messages and announcements go to the phone; signing out stops them on that phone.
 - **2026-11-07:** The app is named **CAV Hub**.
 - **2026-11-07:** Linked tiles built with empty placeholder links; admins add the real Bambi, accident-instructions and repair-quote links (BBSI time clock, Coggno training, handbook and call dispatch are set) in the app.
