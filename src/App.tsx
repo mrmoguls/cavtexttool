@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useAuth } from './lib/auth'
 import { DataProvider } from './lib/data-context'
+import { DemoPushBanners } from './components/push/DemoPushBanners'
 import { Onboarding } from './pages/Onboarding'
 import { DriverHome } from './pages/DriverHome'
 import { DispatchHome } from './pages/DispatchHome'
@@ -25,6 +26,7 @@ export default function App() {
   // Data loads only once someone is signed in (security rules need to know who's asking).
   return (
     <DataProvider key={me.id}>
+      <DemoPushBanners meId={me.id} />
       {isCrew && isStaff
         ? view === 'driver'
           ? <DriverHome driver={me} onSignOut={signOut} onSwitch={() => setView('dispatch')} />

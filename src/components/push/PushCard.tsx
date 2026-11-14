@@ -59,7 +59,7 @@ export function PushCard({ variant = 'prompt' }: { variant?: 'prompt' | 'setting
         <div className="flex-1">
           <p className="text-sm font-semibold text-[#0B1A5C]">Notifications are on for this phone</p>
           <p className="text-xs text-[#6B7A99] mt-0.5">
-            {isDemoMode ? 'Demo: nothing is actually sent.' : "You'll get start times, shift changes and messages even when the app is closed."}
+            {isDemoMode ? "Demo: notifications appear as banners at the top of the screen, including ones sent to other people's phones." : "You'll get start times, shift changes and messages even when the app is closed."}
           </p>
           {variant === 'settings' && <Button size="sm" variant="ghost" className="mt-1 -ml-2" onClick={off} disabled={busy}>Turn off</Button>}
         </div>

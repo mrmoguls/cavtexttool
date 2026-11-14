@@ -5,6 +5,7 @@ import { DEMO_ANNOUNCEMENTS, DEMO_ASSIGNMENTS, DEMO_CONTACTS, DEMO_EMPLOYEES, DE
 import { SEED_BLOCKS, SEED_COVERAGE, SEED_LINE_DAYS, SEED_LINES, SEED_SETTINGS } from './scheduling/seed'
 import type { AuditEntry } from '../types'
 import { PRIMARY_KEYS, AUDITED_TABLES, rowMatches, type RowFilter, type TableName } from './tables'
+import { emitDemoPush } from './push'
 
 type Row = Record<string, unknown>
 type Listener = () => void
@@ -131,6 +132,31 @@ class DemoStore {
     this.notify(table)
   }
 
+  /** What the live app's database would send to phones (migration 009), shown as demo banners. */
+  private pushFor(table: TableName, row: Row) {
+    const emps = this.tables.employees
+    const person = (id: unknown) => emps.find(e => e.id === id)
+    const who = (list: Row[]) => list.map(e => ({ id: String(e.id), name: String(e.name) }))
+    if (table === 'notifications') {
+      const e = person(row.employee_id)
+      if (e) emitDemoPush({ to: who([e]), title: String(row.title ?? ''), body: String(row.body ?? ''), open: 'notifications' })
+    } else if (table === 'messages') {
+      const body = String(row.body ?? '').slice(0, 140)
+      if (row.sender === 'dispatch') {
+        const e = person(row.driver_id)
+        if (e) emitDemoPush({ to: who([e]), title: 'Message from dispatch', body, open: 'messages' })
+      } else {
+        const staff = emps.filter(e => e.active !== false && (e.role === 'dispatcher' || e.can_dispatch) && e.id !== row.driver_id)
+        emitDemoPush({ to: who(staff), title: `Message from ${String(person(row.driver_id)?.name ?? 'a driver')}`, body, open: 'inbox' })
+      }
+    } else if (table === 'announcements') {
+      emitDemoPush({
+        to: who(emps.filter(e => e.active !== false)), title: `New announcement: ${String(row.title ?? '')}`,
+        body: row.requires_ack ? 'Please read and acknowledge.' : String(row.body ?? '').slice(0, 140), open: 'feed',
+      })
+    }
+  }
+
   insert(table: TableName, rows: Row[]): Row[] {
     const pk = PRIMARY_KEYS[table]
     const out: Row[] = []
@@ -146,6 +172,7 @@ class DemoStore {
       this.tables[table].push(row)
       this.audit(table, 'insert', null, row)
       if (table === 'shifts') this.trackBambi('insert', null, row)
+      this.pushFor(table, row)
       out.push(clone(row))
     }
     this.notify(table)

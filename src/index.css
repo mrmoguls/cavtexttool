@@ -54,6 +54,8 @@ body {
 .safe-top { padding-top: env(safe-area-inset-top); }
 .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
 
+@keyframes slidein { from { transform: translateY(-12px); opacity: 0 } to { transform: none; opacity: 1 } }
+
 /* Main screens fill exactly one screen: the top bar and bottom tabs stay put, the middle scrolls. */
 .app-shell { height: 100vh; height: 100dvh; }
 

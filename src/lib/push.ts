@@ -33,7 +33,24 @@ export function isIOS(): boolean {
   return /iPhone|iPad|iPod/.test(ua) || (ua.includes('Macintosh') && navigator.maxTouchPoints > 1)
 }
 
-let demoOn = false
+// Demo mode: no real push service, so notifications show as banners at the top of the screen
+// (and as real browser notifications where the browser allows). The setting is remembered on this device.
+let demoOn = (() => { try { return localStorage.getItem('cav-demo-push') === 'on' } catch { return false } })()
+function setDemoOn(v: boolean) {
+  demoOn = v
+  try { localStorage.setItem('cav-demo-push', v ? 'on' : 'off') } catch { /* fine */ }
+}
+
+/** A notification the live app would have sent to people's phones (demo mode only). */
+export interface DemoPush { id: string; to: { id: string; name: string }[]; title: string; body: string; open: string }
+const demoPushListeners = new Set<(p: DemoPush) => void>()
+export function onDemoPush(fn: (p: DemoPush) => void) { demoPushListeners.add(fn); return () => { demoPushListeners.delete(fn) } }
+export function emitDemoPush(p: Omit<DemoPush, 'id'>) {
+  if (!isDemoMode || !demoOn || p.to.length === 0) return
+  const push = { ...p, id: `${Date.now()}-${Math.random().toString(36).slice(2, 7)}` }
+  // Let the change that caused it finish rendering first.
+  setTimeout(() => demoPushListeners.forEach(fn => fn(push)), 50)
+}
 
 async function currentSubscription(): Promise<PushSubscription | null> {
   if (!isPushSupported()) return null
@@ -61,7 +78,12 @@ async function save(sub: PushSubscription) {
 
 /** Ask permission and sign this phone up. Returns the new status. */
 export async function turnOnPush(): Promise<PushStatus> {
-  if (isDemoMode) { demoOn = true; return 'on' }
+  if (isDemoMode) {
+    setDemoOn(true)
+    // Also ask for real browser notifications where allowed (not inside the Claude viewer).
+    try { if ('Notification' in window && Notification.permission === 'default') await Notification.requestPermission() } catch { /* banners only */ }
+    return 'on'
+  }
   const status = await getPushStatus()
   if (status !== 'off' && status !== 'on') return status
   const permission = await Notification.requestPermission()
@@ -75,7 +97,7 @@ export async function turnOnPush(): Promise<PushStatus> {
 
 /** Stop notifications on this phone. */
 export async function turnOffPush(): Promise<void> {
-  if (isDemoMode) { demoOn = false; return }
+  if (isDemoMode) { setDemoOn(false); return }
   const sub = await currentSubscription()
   if (!sub) return
   await supabase.rpc('remove_push_subscription', { p_endpoint: sub.endpoint })
@@ -132,10 +154,13 @@ export function useOpenFromNotification(onOpen: (target: string) => void) {
         window.history.replaceState(null, '', window.location.pathname + (q ? `?${q}` : '') + window.location.hash)
       }
     } catch { /* ignore */ }
-    if (!('serviceWorker' in navigator)) return
+    // Demo banners open screens the same way.
+    const demo = (e: Event) => { const open = (e as CustomEvent<string>).detail; if (typeof open === 'string') onOpen(open) }
+    window.addEventListener('cav-open', demo)
+    if (!('serviceWorker' in navigator)) return () => window.removeEventListener('cav-open', demo)
     const handler = (e: MessageEvent) => { if (e.data?.type === 'cav-open' && typeof e.data.open === 'string') onOpen(e.data.open) }
     navigator.serviceWorker.addEventListener('message', handler)
-    return () => navigator.serviceWorker.removeEventListener('message', handler)
+    return () => { navigator.serviceWorker.removeEventListener('message', handler); window.removeEventListener('cav-open', demo) }
     // Run once per screen; onOpen only switches tabs.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
